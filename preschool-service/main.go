@@ -6,6 +6,15 @@ import (
 	"net/http"
 )
 
+type Vrtic struct {
+	Naziv           string `json:"naziv"`
+	Tip             string `json:"tip"` // "drzavni" ili "privatni"
+	Grad            string `json:"grad"`
+	Opstina         string `json:"opstina"`
+	MaxKapacitet    int    `json:"max_kapacitet"`
+	TrenutnoUpisano int    `json:"trenutno_upisano"`
+}
+
 func main() {
 	// Osnovni pozdrav
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -14,9 +23,23 @@ func main() {
 
 	// Test podaci za kolegu
 	http.HandleFunc("/vrtici", func(w http.ResponseWriter, r *http.Request) {
-		podaci := []map[string]interface{}{
-			{"naziv": "Plavi Cuperak", "mesta": 20},
-			{"naziv": "Sumica", "mesta": 5},
+		podaci := []Vrtic{
+			{
+				Naziv:           "Plavi Cuperak",
+				Tip:             "drzavni",
+				Grad:            "Beograd",
+				Opstina:         "Zvezdara",
+				MaxKapacitet:    120,
+				TrenutnoUpisano: 95,
+			},
+			{
+				Naziv:           "Sumica",
+				Tip:             "privatni",
+				Grad:            "Beograd",
+				Opstina:         "Vozdovac",
+				MaxKapacitet:    60,
+				TrenutnoUpisano: 58,
+			},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(podaci)
