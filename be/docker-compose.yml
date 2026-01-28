@@ -1,21 +1,24 @@
 version: '3.8'
 
 services:
-  # Tvoj sistem
   preschool-app:
     build: ./preschool-service
     ports:
       - "8081:8081"
     container_name: preschool-service
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: euprava
+      MONGO_COLLECTION: vrtici
+    depends_on:
+      - mongo
 
-  # Kolegin sistem
   analytics-app:
     build: ./analytics-service
     ports:
       - "8082:8082"
     container_name: analytics-service
 
-  # SSO Sistem (Zajednički - Keycloak)
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     command: start-dev
@@ -25,3 +28,14 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
+
+  mongo:
+    image: mongo:7
+    container_name: preschool-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
