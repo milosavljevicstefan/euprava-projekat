@@ -7,12 +7,6 @@ services:
     ports:
       - "8081:8081"
     container_name: preschool-service
-    environment:
-      MONGO_URI: mongodb://mongo:27017
-      MONGO_DB: euprava
-      MONGO_COLLECTION: vrtici
-    depends_on:
-      - mongo
 
   # Kolegin sistem
   analytics-app:
@@ -31,14 +25,3 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
-
-  mongo:
-    image: mongo:7
-    container_name: preschool-mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-
-volumes:
-  mongo-data:
