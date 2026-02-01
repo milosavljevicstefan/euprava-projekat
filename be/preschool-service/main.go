@@ -30,13 +30,21 @@ var vrticiCollection *mongo.Collection
 func main() {
 	initMongo()
 
-	// Osnovni pozdrav
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		enableCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		fmt.Fprintf(w, "Preschool servis (8081) je online.")
 	})
 
-	// Test podaci za kolegu
 	http.HandleFunc("/vrtici", func(w http.ResponseWriter, r *http.Request) {
+		enableCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		switch r.Method {
 		case http.MethodGet:
 			podaci, err := getAllVrtici(r.Context())
@@ -150,4 +158,10 @@ func getenvDefault(key, fallback string) string {
 		return fallback
 	}
 	return val
+}
+
+func enableCORS(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 }

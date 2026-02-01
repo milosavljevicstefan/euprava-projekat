@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | Vrtici</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-noise"></div>
+    <header class="hero" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links">
+          <a href="#vrtici">Vrtici</a>
+          <a href="#stat">Statistika</a>
+          <a href="#dodaj">Dodaj</a>
+          <a href="#login">Login</a>
+        </div>
+      </nav>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Digitalni servis</p>
+          <h1>Pronadji vrtic koji ima mesta.</h1>
+          <p class="lead">
+            Centralni pregled drzavnih i privatnih vrtica, kapaciteta i trenutno
+            upisanih. Brza pretraga po gradu i opstini.
+          </p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#vrtici">Pogledaj listu</a>
+            <a class="btn ghost" href="#dodaj">Dodaj vrtic</a>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="panel-card">
+            <h3>Brzi filteri</h3>
+            <div class="filters">
+              <label>
+                Tip
+                <select id="filter-tip">
+                  <option value="">Sve</option>
+                  <option value="drzavni">Drzavni</option>
+                  <option value="privatni">Privatni</option>
+                </select>
+              </label>
+              <label>
+                Grad
+                <select id="filter-grad"></select>
+              </label>
+              <label>
+                Opstina
+                <select id="filter-opstina"></select>
+              </label>
+            </div>
+            <button class="btn secondary" id="filter-reset">Reset</button>
+          </div>
+          <div class="panel-metric">
+            <p>Servis status</p>
+            <div class="status-pill" id="service-status">Online</div>
+            <small>API: <span id="api-base">http://localhost:8081</span></small>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="stats" id="stat">
+        <div class="stat-card">
+          <h4>Ukupno vrtica</h4>
+          <p id="stat-total">0</p>
+        </div>
+        <div class="stat-card">
+          <h4>Drzavni</h4>
+          <p id="stat-public">0</p>
+        </div>
+        <div class="stat-card">
+          <h4>Privatni</h4>
+          <p id="stat-private">0</p>
+        </div>
+        <div class="stat-card">
+          <h4>Prosecna popunjenost</h4>
+          <p id="stat-occupancy">0%</p>
+        </div>
+      </section>
+
+      <section class="vrtici" id="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Lista vrtica</h2>
+            <p>Sortirano po nazivu, sa indikatorom popunjenosti.</p>
+          </div>
+          <div class="search">
+            <input id="search" type="text" placeholder="Pretrazi po nazivu..." />
+          </div>
+        </div>
+        <div id="cards" class="cards"></div>
+      </section>
+
+      <section class="form-section" id="dodaj">
+        <div class="form-card">
+          <h2>Dodaj vrtic</h2>
+          <p>Podaci se upisuju direktno u bazu.</p>
+          <form id="vrtic-form">
+            <div class="grid">
+              <label>
+                Naziv
+                <input name="naziv" required />
+              </label>
+              <label>
+                Tip
+                <select name="tip" required>
+                  <option value="drzavni">Drzavni</option>
+                  <option value="privatni">Privatni</option>
+                </select>
+              </label>
+              <label>
+                Grad
+                <input name="grad" required />
+              </label>
+              <label>
+                Opstina
+                <input name="opstina" required />
+              </label>
+              <label>
+                Max kapacitet
+                <input name="max_kapacitet" type="number" min="1" required />
+              </label>
+              <label>
+                Trenutno upisano
+                <input name="trenutno_upisano" type="number" min="0" required />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn primary" type="submit">Sacuvaj</button>
+              <span id="form-status" class="muted"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="login-section" id="login">
+        <div class="form-card login-card">
+          <h2>Prijava</h2>
+          <p>Forma je spremna, backend logiku dodaje kolega.</p>
+          <form id="login-form">
+            <div class="grid">
+              <label>
+                Email
+                <input name="email" type="email" placeholder="ime@domen.com" required />
+              </label>
+              <label>
+                Lozinka
+                <input name="password" type="password" required />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn primary" type="submit">Uloguj se</button>
+              <span id="login-status" class="muted"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
