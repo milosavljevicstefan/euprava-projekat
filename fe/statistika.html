@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | Statistika</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="statistika">
+    <div class="bg-noise"></div>
+
+    <header class="hero hero-compact" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links">
+          <a href="index.html" data-nav="vrtici">Vrtici</a>
+          <a href="statistika.html" data-nav="statistika">Statistika</a>
+          <a href="dodaj.html" data-nav="dodaj">CRUD</a>
+          <a href="login.html" data-nav="login">Login</a>
+          <a href="registracija.html" data-nav="registracija">Registracija</a>
+          <a href="profil.html" data-nav="profil">Profil</a>
+        </div>
+      </nav>
+      <div class="page-title-wrap">
+        <p class="eyebrow">Analitika</p>
+        <h1>Statistika i izvestaji</h1>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <section class="stats" id="stat">
+        <div class="stat-card">
+          <h4>Ukupno vrtica</h4>
+          <p id="stat-total">0</p>
+        </div>
+        <div class="stat-card">
+          <h4>Drzavni</h4>
+          <p id="stat-public">0</p>
+        </div>
+        <div class="stat-card">
+          <h4>Privatni</h4>
+          <p id="stat-private">0</p>
+        </div>
+        <div class="stat-card">
+          <h4>Prosecna popunjenost</h4>
+          <p id="stat-occupancy">0%</p>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-card">
+          <h2>Izvestaj po opstini</h2>
+          <p>Moze da se preuzme kao PDF ili vidi kao lista.</p>
+          <div class="form-actions">
+            <button class="btn primary" id="download-opstina-report" type="button">Preuzmi PDF</button>
+            <span id="report-status" class="muted"></span>
+          </div>
+          <div id="opstina-report" class="cards report-grid"></div>
+        </div>
+      </section>
+
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Kriticno popunjeni vrtici</h2>
+            <p>Popunjenost veca od 90%.</p>
+          </div>
+        </div>
+        <div id="critical-cards" class="cards"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

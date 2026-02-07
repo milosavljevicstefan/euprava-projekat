@@ -10,6 +10,8 @@ services:
       MONGO_URI: mongodb://mongo:27017
       MONGO_DB: euprava
       MONGO_COLLECTION: vrtici
+      JWT_SECRET: dev-secret
+      AUTH_SALT: dev-salt
     depends_on:
       - mongo
 
@@ -18,16 +20,6 @@ services:
     ports:
       - "8082:8082"
     container_name: analytics-service
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:latest
-    command: start-dev
-    environment:
-      KC_HOSTNAME: localhost
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-    ports:
-      - "8080:8080"
 
   mongo:
     image: mongo:7

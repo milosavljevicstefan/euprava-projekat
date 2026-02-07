@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | CRUD vrtica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="dodaj">
+    <div class="bg-noise"></div>
+
+    <header class="hero hero-compact" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links">
+          <a href="index.html" data-nav="vrtici">Vrtici</a>
+          <a href="statistika.html" data-nav="statistika">Statistika</a>
+          <a href="dodaj.html" data-nav="dodaj">CRUD</a>
+          <a href="login.html" data-nav="login">Login</a>
+          <a href="registracija.html" data-nav="registracija">Registracija</a>
+          <a href="profil.html" data-nav="profil">Profil</a>
+        </div>
+      </nav>
+      <div class="page-title-wrap">
+        <p class="eyebrow">Administracija</p>
+        <h1>CRUD vrtica</h1>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <section class="form-section" id="dodaj">
+        <div class="form-card">
+          <h2 id="vrtic-form-title">Dodaj novi vrtic</h2>
+          <p>Kreiranje i izmena zahtevaju da si ulogovan.</p>
+          <form id="vrtic-form">
+            <input id="vrtic-id" name="id" type="hidden" />
+            <div class="grid">
+              <label>
+                Naziv
+                <input name="naziv" required />
+              </label>
+              <label>
+                Tip
+                <select name="tip" required>
+                  <option value="drzavni">Drzavni</option>
+                  <option value="privatni">Privatni</option>
+                </select>
+              </label>
+              <label>
+                Grad
+                <input name="grad" required />
+              </label>
+              <label>
+                Opstina
+                <input name="opstina" required />
+              </label>
+              <label>
+                Max kapacitet
+                <input name="max_kapacitet" type="number" min="1" required />
+              </label>
+              <label>
+                Trenutno upisano
+                <input name="trenutno_upisano" type="number" min="0" required />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn primary" id="save-vrtic-btn" type="submit">Sacuvaj</button>
+              <button class="btn ghost" id="cancel-edit" type="button">Otkazi izmenu</button>
+              <a class="btn ghost" href="login.html">Idi na login</a>
+              <span id="form-status" class="muted"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Upravljanje vrticima</h2>
+            <p>Read/Update/Delete iz liste ispod.</p>
+          </div>
+        </div>
+        <div id="manage-cards" class="cards"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

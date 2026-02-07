@@ -68,6 +68,7 @@ a {
   gap: 18px;
   font-size: 14px;
   color: var(--muted);
+  align-items: center;
 }
 
 .hero-grid {
@@ -109,6 +110,11 @@ a {
   font-weight: 600;
   border: 1px solid transparent;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn.small {
+  padding: 8px 14px;
+  font-size: 12px;
 }
 
 .btn:hover {
@@ -215,6 +221,21 @@ main {
   gap: 20px;
 }
 
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search input {
+  min-width: 260px;
+}
+
+.search select {
+  min-width: 180px;
+}
+
 .cards {
   margin-top: 24px;
   display: grid;
@@ -311,10 +332,12 @@ main {
   .hero-grid {
     grid-template-columns: 1fr;
   }
+
   .section-head {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .footer {
     flex-direction: column;
     gap: 12px;
@@ -329,4 +352,120 @@ main {
 
 .login-card {
   width: min(620px, 100%);
+}
+
+#logout-btn {
+  border-color: var(--stroke);
+}
+
+#user-info {
+  margin-top: 8px;
+}
+.hero-compact {
+  padding-bottom: 32px;
+}
+
+.page-main {
+  padding: 0 6vw 80px;
+  position: relative;
+  z-index: 1;
+}
+
+.page-title-wrap {
+  margin-top: 36px;
+}
+
+.page-title-wrap h1 {
+  margin: 6px 0 0;
+  font-size: clamp(30px, 4vw, 48px);
+}
+
+.nav-links a {
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.nav-links a.active-nav {
+  color: var(--ink);
+  border: 1px solid var(--stroke);
+  background: rgba(244, 241, 236, 0.06);
+}
+
+.rank-badge {
+  display: inline-flex;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #0f1220;
+  background: linear-gradient(90deg, var(--accent), #ffd56c);
+}
+
+.report-grid {
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .page-main {
+    padding: 0 5vw 64px;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+.card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn.danger {
+  background: #f15d5d;
+  color: #111;
+  border-color: transparent;
+}
+
+.profile-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(14, 20, 38, 0.9);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.profile-row span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.profile-row strong {
+  font-size: 14px;
+}
+
+.nav-links {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .card-actions {
+    justify-content: stretch;
+  }
+
+  .card-actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
 }
