@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | Vrtici</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="vrtici">
+    <div class="bg-noise"></div>
+
+    <header class="hero" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links">
+          <a href="index.html" data-nav="vrtici">Vrtici</a>
+          <a href="statistika.html" data-nav="statistika">Statistika</a>
+          <a href="dodaj.html" data-nav="dodaj">CRUD</a>
+          <a href="login.html" data-nav="login">Login</a>
+          <a href="registracija.html" data-nav="registracija">Registracija</a>
+          <a href="profil.html" data-nav="profil">Profil</a>
+        </div>
+      </nav>
+
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Digitalni servis</p>
+          <h1>Pronadji vrtic koji ima mesta.</h1>
+          <p class="lead">
+            Pregled drzavnih i privatnih vrtica, brzo filtriranje po gradu i opstini,
+            i rangiranje po slobodnim mestima.
+          </p>
+        </div>
+        <div class="hero-panel">
+          <div class="panel-card">
+            <h3>Brzi filteri</h3>
+            <div class="filters">
+              <label>
+                Tip
+                <select id="filter-tip">
+                  <option value="">Sve</option>
+                  <option value="drzavni">Drzavni</option>
+                  <option value="privatni">Privatni</option>
+                </select>
+              </label>
+              <label>
+                Grad
+                <select id="filter-grad"></select>
+              </label>
+              <label>
+                Opstina
+                <select id="filter-opstina"></select>
+              </label>
+            </div>
+            <button class="btn secondary" id="filter-reset" type="button">Reset</button>
+          </div>
+          <div class="panel-metric">
+            <p>Servis status</p>
+            <div class="status-pill" id="service-status">Online</div>
+            <small>API: <span id="api-base">http://localhost:8081</span></small>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <section class="vrtici" id="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Lista vrtica</h2>
+            <p>Sortiranje po nazivu ili po dostupnim mestima (rangiranje).</p>
+          </div>
+          <div class="search">
+            <input id="search" type="text" placeholder="Pretrazi po nazivu..." />
+            <select id="sort-mode">
+              <option value="naziv">Sort: naziv</option>
+              <option value="slobodna_mesta">Sort: slobodna mesta</option>
+            </select>
+          </div>
+        </div>
+        <div id="cards" class="cards"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | Registracija</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="registracija">
+    <div class="bg-noise"></div>
+
+    <header class="hero hero-compact" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links">
+          <a href="index.html" data-nav="vrtici">Vrtici</a>
+          <a href="statistika.html" data-nav="statistika">Statistika</a>
+          <a href="dodaj.html" data-nav="dodaj">CRUD</a>
+          <a href="login.html" data-nav="login">Login</a>
+          <a href="registracija.html" data-nav="registracija">Registracija</a>
+          <a href="profil.html" data-nav="profil">Profil</a>
+        </div>
+      </nav>
+      <div class="page-title-wrap">
+        <p class="eyebrow">Novi korisnik</p>
+        <h1>Registracija</h1>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <section class="login-section">
+        <div class="form-card login-card">
+          <h2>Kreiraj nalog</h2>
+          <p>Tokom registracije biras rolu.</p>
+          <form id="register-form" novalidate>
+            <div class="grid">
+              <label>
+                Email
+                <input name="email" type="email" placeholder="ime@euprava.local" required />
+              </label>
+              <label>
+                Lozinka
+                <input name="password" type="password" placeholder="minimum 6 karaktera" required />
+              </label>
+              <label>
+                Rola
+                <select name="role" required>
+                  <option value="korisnik">Korisnik</option>
+                  <option value="sluzbenik">Sluzbenik</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn primary" type="submit">Registruj se</button>
+              <a class="btn ghost" href="login.html">Idi na login</a>
+              <span id="register-status" class="muted"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
