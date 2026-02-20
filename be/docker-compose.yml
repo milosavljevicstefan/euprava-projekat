@@ -15,6 +15,20 @@ services:
     depends_on:
       - mongo
 
+  auth-app:
+    build: ./auth-service
+    ports:
+      - "8083:8083"
+    container_name: auth-service
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: euprava
+      MONGO_COLLECTION: users
+      JWT_SECRET: dev-secret
+      AUTH_SALT: dev-salt
+    depends_on:
+      - mongo
+
   analytics-app:
     build: ./analytics-service
     ports:

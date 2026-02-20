@@ -320,7 +320,7 @@ function renderAll() {
 
 async function fetchVrtici() {
   try {
-    const url = new URL(`${API_BASE}/vrtici`);
+    const url = new URL(`${API_VRTICI}/vrtici`);
     if (state.sortMode === "slobodna_mesta") {
       url.searchParams.set("sort", "slobodna_mesta");
     }
@@ -697,7 +697,7 @@ async function downloadOpstinaPdf() {
   el.downloadReport.disabled = true;
 
   try {
-    const res = await fetch(`${API_BASE}/vrtici/izvestaj/opstina?format=pdf`);
+    const res = await fetch(`${API_VRTICI}/vrtici/izvestaj/opstina?format=pdf`);
     if (!res.ok) throw new Error("PDF nije dostupan");
 
     const blob = await res.blob();
@@ -725,7 +725,7 @@ function bindReportActions() {
 }
 
 async function bootstrap() {
-  if (el.apiBase) el.apiBase.textContent = API_BASE;
+  if (el.apiBase) el.apiBase.textContent = API_VRTICI;
   setNavActive();
 
   bindListEvents();
