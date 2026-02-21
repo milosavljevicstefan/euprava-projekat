@@ -5,8 +5,7 @@ Ovo je timski projekat iz oblasti softverskog inženjeringa koji simulira upravl
 ---
 
 ## Struktura projekta
-
-
+```
 root/
 │
 ├── be/ # Backend servisi (Go)
@@ -19,7 +18,7 @@ root/
 ├── index.html
 ├── app.js
 └── styles.css
-
+```
 
 ---
 
