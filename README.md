@@ -15,11 +15,10 @@ root/
 │ └── docker-compose.yml # Docker Compose konfiguracija svih servisa
 │
 └── fe/ # Frontend
-├── index.html
-├── app.js
-└── styles.css
+  ├── index.html
+  ├── app.js
+  └── styles.css
 ```
-
 ---
 
 ## Backend servisi
