@@ -1,4 +1,4 @@
-module github.com/milosavljevicstefan/euprava-projekat/preschool-service
+module github.com/milosavljevicstefan/euprava-projekat/be/preschool-service
 
 go 1.21
 

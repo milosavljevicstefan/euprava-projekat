@@ -8,9 +8,9 @@ Kako pokrenuti projekt
 
   • Preschool Service: `http://localhost:8081`
 
-  • Analytics Service: `http://localhost:8082`
+  • Open Data Service: `http://localhost:8082`
 
-  • Keycloak SSO: `http://localhost:8080`
+  • Auth SSO: `http://localhost:8083`
 
 Pravila rada (Git Workflow)
 • Svaki novi feature mora imati svoju granu (npr. `feature/naziv-funkcionalnosti`).

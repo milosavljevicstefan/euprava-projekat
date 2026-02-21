@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:8081";
+const API_VRTICI = "http://localhost:8081";
+const API_AUTH = "http://localhost:8083";
 
 const state = {
   vrtici: [],
@@ -192,7 +193,7 @@ function vrticCardHTML(v, idx, includeActions) {
     ${rankHTML}
     <div class="badge">${v.tip || "n/a"}</div>
     <h3>${v.naziv || "Bez naziva"}</h3>
-    <div><strong>${v.grad || ""}</strong> • ${v.opstina || ""}</div>
+    <div><strong>${v.grad || ""}</strong> ï¿½ ${v.opstina || ""}</div>
     <div class="progress"><span style="width:${pct}%"></span></div>
     <div class="muted">${v.trenutno_upisano || 0} / ${v.max_kapacitet || 0} upisano</div>
     <div class="muted">Slobodna mesta: ${freePlaces(v)}</div>
@@ -249,7 +250,7 @@ function renderCriticalCards() {
     card.innerHTML = `
       <div class="badge">${v.tip || "n/a"}</div>
       <h3>${v.naziv || "Bez naziva"}</h3>
-      <div><strong>${v.grad || ""}</strong> • ${v.opstina || ""}</div>
+      <div><strong>${v.grad || ""}</strong> ï¿½ ${v.opstina || ""}</div>
       <div class="muted">Popunjenost: ${Math.round(Number(v.popunjenost || 0) * 100)}%</div>
       <div class="muted">Slobodna mesta: ${freePlaces(v)}</div>
     `;
@@ -319,7 +320,7 @@ function renderAll() {
 
 async function fetchVrtici() {
   try {
-    const url = new URL(`${API_BASE}/vrtici`);
+    const url = new URL(`${API_VRTICI}/vrtici`);
     if (state.sortMode === "slobodna_mesta") {
       url.searchParams.set("sort", "slobodna_mesta");
     }
@@ -353,7 +354,7 @@ async function fetchVrtici() {
 async function fetchKriticni() {
   if (!el.criticalCards) return;
   try {
-    const res = await fetch(`${API_BASE}/vrtici/kriticni`);
+    const res = await fetch(`${API_VRTICI}/vrtici/kriticni`);
     if (!res.ok) throw new Error("API error");
     const data = await res.json();
     state.kriticni = Array.isArray(data) ? data : [];
@@ -366,7 +367,7 @@ async function fetchKriticni() {
 async function fetchOpstinaReportJson() {
   if (!el.opstinaReport) return;
   try {
-    const res = await fetch(`${API_BASE}/vrtici/izvestaj/opstina`);
+    const res = await fetch(`${API_VRTICI}/vrtici/izvestaj/opstina`);
     if (!res.ok) throw new Error("API error");
     const data = await res.json();
     state.opstinaReport = Array.isArray(data) ? data : [];
@@ -380,7 +381,7 @@ async function createVrtic(payload) {
   const headers = authHeaders();
   if (!headers) throw new Error("Prvo se uloguj.");
 
-  const res = await fetch(`${API_BASE}/vrtici`, {
+  const res = await fetch(`${API_VRTICI}/vrtici`, {
     method: "POST",
     headers: {
       ...headers,
@@ -396,7 +397,7 @@ async function updateVrticById(id, payload) {
   const headers = authHeaders();
   if (!headers) throw new Error("Prvo se uloguj.");
 
-  const res = await fetch(`${API_BASE}/vrtici/${id}`, {
+  const res = await fetch(`${API_VRTICI}/vrtici/${id}`, {
     method: "PUT",
     headers: {
       ...headers,
@@ -412,7 +413,7 @@ async function deleteVrticById(id) {
   const headers = authHeaders();
   if (!headers) throw new Error("Prvo se uloguj.");
 
-  const res = await fetch(`${API_BASE}/vrtici/${id}`, {
+  const res = await fetch(`${API_VRTICI}/vrtici/${id}`, {
     method: "DELETE",
     headers,
   });
@@ -579,7 +580,7 @@ function bindLoginEvents() {
     el.loginStatus.textContent = "Prijava...";
 
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetch(`${API_AUTH}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -616,7 +617,7 @@ function bindRegisterEvents() {
     el.registerStatus.textContent = "Registracija...";
 
     try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
+      const res = await fetch(`${API_AUTH}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -653,7 +654,7 @@ async function fetchProfile() {
   el.profileStatus.textContent = "Ucitavam profil...";
 
   try {
-    const res = await fetch(`${API_BASE}/auth/profile`, {
+    const res = await fetch(`${API_AUTH}/auth/profile`, {
       method: "GET",
       headers,
     });
@@ -696,7 +697,7 @@ async function downloadOpstinaPdf() {
   el.downloadReport.disabled = true;
 
   try {
-    const res = await fetch(`${API_BASE}/vrtici/izvestaj/opstina?format=pdf`);
+    const res = await fetch(`${API_VRTICI}/vrtici/izvestaj/opstina?format=pdf`);
     if (!res.ok) throw new Error("PDF nije dostupan");
 
     const blob = await res.blob();
@@ -724,7 +725,7 @@ function bindReportActions() {
 }
 
 async function bootstrap() {
-  if (el.apiBase) el.apiBase.textContent = API_BASE;
+  if (el.apiBase) el.apiBase.textContent = API_VRTICI;
   setNavActive();
 
   bindListEvents();
