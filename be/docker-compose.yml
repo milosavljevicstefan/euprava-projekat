@@ -29,11 +29,12 @@ services:
     depends_on:
       - mongo
 
-  analytics-app:
-    build: ./analytics-service
+  open-data-service:
+    build: ./open-data-service
     ports:
       - "8082:8082"
-    container_name: analytics-service
+    depends_on:
+      - preschool-app
 
   mongo:
     image: mongo:7
