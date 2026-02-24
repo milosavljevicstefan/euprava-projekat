@@ -154,9 +154,13 @@ func projection(years int) ([]OpstinaReport, error) {
 	for i := range report {
 		for y := 0; y < years; y++ {
 			report[i].UkupnoUpisano = int(float64(report[i].UkupnoUpisano) * (1 + growth))
+			// ne dozvoli da pređe kapacitet
+			if report[i].UkupnoUpisano > report[i].UkupanKapacitet {
+				report[i].UkupnoUpisano = report[i].UkupanKapacitet
+				break
+			}
 		}
-		report[i].Popunjenost =
-			float64(report[i].UkupnoUpisano) / float64(report[i].UkupanKapacitet)
+		report[i].Popunjenost = float64(report[i].UkupnoUpisano) / float64(report[i].UkupanKapacitet)
 	}
 
 	return report, nil
