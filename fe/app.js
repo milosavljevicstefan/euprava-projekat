@@ -1,6 +1,6 @@
 const API_VRTICI = "http://localhost:8081";
 const API_AUTH = "http://localhost:8083";
-
+const OPEN_DATA_URL = "http://localhost:8082/analytics";
 const state = {
   vrtici: [],
   kriticni: [],
@@ -723,16 +723,135 @@ function bindReportActions() {
   if (!el.downloadReport) return;
   el.downloadReport.addEventListener("click", downloadOpstinaPdf);
 }
+async function loadRanking() {
+  const container = document.getElementById("ranking-cards");
+  if (!container) return; // Ako nismo na analitika.html
+
+  container.innerHTML = "<p>Učitavanje...</p>";
+
+  try {
+    const res = await fetch(`${OPEN_DATA_URL}/ranking`);
+    const data = await res.json();
+
+    container.innerHTML = "";
+
+    data.forEach((r, index) => {
+      container.innerHTML += `
+        <div class="card">
+          <span class="rank-badge">#${index + 1}</span>
+          <h3>${r.opstina}</h3>
+          <p>Kapacitet: ${r.ukupan_kapacitet}</p>
+          <p>Upisano: ${r.ukupno_upisano}</p>
+          <p>Popunjenost: ${(r.popunjenost * 100).toFixed(2)}%</p>
+        </div>
+      `;
+    });
+
+  } catch (err) {
+    container.innerHTML = "<p>Greška pri učitavanju.</p>";
+    console.error(err);
+  }
+}
+function bindAnalyticsEvents() {
+  const coverageBtn = document.getElementById("coverage-btn");
+  const projectionBtn = document.getElementById("projection-btn");
+
+  if (coverageBtn) {
+    coverageBtn.addEventListener("click", async () => {
+      const opstina = document.getElementById("coverage-opstina").value;
+
+      const res = await fetch(`${OPEN_DATA_URL}/coverage?opstina=${opstina}`);
+      const data = await res.json();
+
+      const container = document.getElementById("coverage-result");
+      container.innerHTML = `
+        <div class="card">
+          <h3>${data.opstina}</h3>
+          <p>Broj dece: ${data.broj_dece}</p>
+          <p>Kapacitet: ${data.kapacitet}</p>
+          <p>Deficit: ${data.deficit}</p>
+          <p>Pokrivenost: ${Number(data.pokrivenost).toFixed(2)}%</p>
+        </div>
+      `;
+    });
+  }
+
+  if (projectionBtn) {
+    projectionBtn.addEventListener("click", async () => {
+      const years = document.getElementById("projection-years").value;
+
+      const res = await fetch(`${OPEN_DATA_URL}/projection?years=${years}`);
+      const data = await res.json();
+
+      const container = document.getElementById("projection-cards");
+      container.innerHTML = "";
+
+      data.forEach((r) => {
+        container.innerHTML += `
+          <div class="card">
+            <h3>${r.opstina}</h3>
+            <p>Projekcija upisanih: ${r.ukupno_upisano}</p>
+            <p>Nova popunjenost: ${(r.popunjenost * 100).toFixed(2)}%</p>
+          </div>
+        `;
+      });
+    });
+  }
+}
+
+// Preuzimanje javnih podataka
+async function downloadPublicData() {
+  const btn = document.getElementById("download-public-btn");
+  const status = document.getElementById("public-download-status");
+  if (!btn || !status) return;
+
+  const oldLabel = btn.textContent;
+  status.textContent = "Preuzimam...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${OPEN_DATA_URL}/public-data?format=json`);
+    if (!res.ok) throw new Error("Podaci nisu dostupni");
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `public-data-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    status.textContent = "Podaci preuzeti.";
+  } catch (err) {
+    status.textContent = `Greška: ${err.message || "Neuspesno"}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldLabel;
+  }
+}
+
+// Bind dugmeta
+function bindPublicDownload() {
+  const btn = document.getElementById("download-public-btn");
+  if (btn) {
+    btn.addEventListener("click", downloadPublicData);
+  }
+}
 
 async function bootstrap() {
   if (el.apiBase) el.apiBase.textContent = API_VRTICI;
   setNavActive();
-
+  bindAnalyticsEvents();
+  loadRanking();
   bindListEvents();
   bindCrudEvents();
   bindLoginEvents();
   bindRegisterEvents();
   bindProfileEvents();
+  bindReportActions();
+  bindPublicDownload();
   bindReportActions();
 
   const needsVrtici = Boolean(

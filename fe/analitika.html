@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Open Data Analitika</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+    <header class="hero hero-compact" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links">
+          <a href="index.html" data-nav="vrtici">Vrtici</a>
+          <a href="statistika.html" data-nav="statistika">Statistika</a>
+          <a href="ranking.html" data-nav="opstine">Najbolje opštine</a>
+          <a href="dodaj.html" data-nav="dodaj">CRUD</a>
+          <a href="analitika.html">Open Data Analitika</a>
+          <a href="login.html" data-nav="login">Login</a>
+          <a href="registracija.html" data-nav="registracija">Registracija</a>
+          <a href="profil.html" data-nav="profil">Profil</a>
+        </div>
+      </nav>
+    </header>
+
+<main class="page-main">
+
+  <!-- Coverage -->
+  <section class="form-section">
+    <div class="form-card">
+      <h2>Pokrivenost po opštini</h2>
+      <div class="grid">
+        <input type="text" id="coverage-opstina" placeholder="Unesi opstinu" />
+        <button class="btn primary" id="coverage-btn">Izračunaj</button>
+      </div>
+      <div id="coverage-result" class="cards"></div>
+    </div>
+  </section>
+
+  <!-- Projection -->
+  <section class="form-section">
+    <div class="form-card">
+      <h2>Projekcija rasta</h2>
+      <p>Unesite broj godina za projekciju rasta broja dece u vrtićima.</p>
+      <div class="grid">
+        <input type="number" id="projection-years" placeholder="Broj godina" />
+        <button class="btn primary" id="projection-btn">Projekcija</button>
+      </div>
+      <p>Funkcija predviđa koliko dece će biti upisano u narednim godinama.</p>
+      <p>Rast je fiksan 5% godišnje.</p>
+      <p>Popunjenost se računa na osnovu maksimalnog kapaciteta opštine.</p>
+      <div id="projection-cards" class="cards"></div>
+    </div>
+  </section>
+  <!-- Public Data Download -->
+  <section class="form-section">
+    <div class="form-card">
+      <h2>Preuzmi javne podatke</h2>
+      <button class="btn primary" id="download-public-btn">Preuzmi javne podatke</button>
+      <div id="public-download-status" class="muted"></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

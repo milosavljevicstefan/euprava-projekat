@@ -154,9 +154,13 @@ func projection(years int) ([]OpstinaReport, error) {
 	for i := range report {
 		for y := 0; y < years; y++ {
 			report[i].UkupnoUpisano = int(float64(report[i].UkupnoUpisano) * (1 + growth))
+			// ne dozvoli da pređe kapacitet
+			if report[i].UkupnoUpisano > report[i].UkupanKapacitet {
+				report[i].UkupnoUpisano = report[i].UkupanKapacitet
+				break
+			}
 		}
-		report[i].Popunjenost =
-			float64(report[i].UkupnoUpisano) / float64(report[i].UkupanKapacitet)
+		report[i].Popunjenost = float64(report[i].UkupnoUpisano) / float64(report[i].UkupanKapacitet)
 	}
 
 	return report, nil
@@ -198,6 +202,40 @@ func projectionHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// PublicDataHandler vraća javne podatke (open_data.csv) kao JSON
+func publicDataHandler(w http.ResponseWriter, r *http.Request) {
+	// omogućavamo CORS za frontend
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"public-data.json\"")
+
+	data := make([]map[string]interface{}, 0, len(openData))
+	for opstina, broj := range openData {
+		data = append(data, map[string]interface{}{
+			"opstina": opstina,
+			"brojDece": broj,
+		})
+	}
+
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		http.Error(w, "Neuspesno kodiranje podataka", http.StatusInternalServerError)
+	}
+}
+
 func main() {
 	if err := loadOpenData(); err != nil {
         log.Fatalf("Greska pri ucitavanju open data: %v", err)
@@ -207,7 +245,10 @@ func main() {
 	http.HandleFunc("/analytics/coverage", coverageHandler)
 	http.HandleFunc("/analytics/ranking", rankingHandler)
 	http.HandleFunc("/analytics/projection", projectionHandler)
+	http.HandleFunc("/analytics/public-data", publicDataHandler)
+
+	handler := enableCORS(http.DefaultServeMux)
 
 	fmt.Println("Open Data servis na 8082...")
-	http.ListenAndServe(":8082", nil)
+	http.ListenAndServe(":8082", handler)
 }
