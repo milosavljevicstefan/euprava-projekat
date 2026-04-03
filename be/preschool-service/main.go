@@ -28,6 +28,7 @@ type Vrtic struct {
 	Opstina         string             `json:"opstina" bson:"opstina"`
 	MaxKapacitet    int                `json:"max_kapacitet" bson:"max_kapacitet"`
 	TrenutnoUpisano int                `json:"trenutno_upisano" bson:"trenutno_upisano"`
+	CreatedBy       string             `json:"created_by" bson:"created_by"`
 }
 
 type VrticView struct {
@@ -41,6 +42,7 @@ type VrticView struct {
 	Popunjenost     float64            `json:"popunjenost"`
 	SlobodnaMesta   int                `json:"slobodna_mesta"`
 	Kriticno        bool               `json:"kriticno"`
+	CreatedBy       string             `json:"created_by"`
 }
 
 type OpstinaIzvestaj struct {
@@ -51,7 +53,30 @@ type OpstinaIzvestaj struct {
 	Popunjenost     float64 `json:"popunjenost"`
 }
 
+type UpisZahtev struct {
+	ID            primitive.ObjectID  `json:"id" bson:"_id,omitempty"`
+	VrticID       primitive.ObjectID  `json:"vrtic_id" bson:"vrtic_id"`
+	VrticNaziv    string              `json:"vrtic_naziv" bson:"vrtic_naziv"`
+	VrticOwner    string              `json:"vrtic_owner" bson:"vrtic_owner"`
+	ImeRoditelja  string              `json:"ime_roditelja" bson:"ime_roditelja"`
+	ImeDeteta     string              `json:"ime_deteta" bson:"ime_deteta"`
+	BrojGodina    int                 `json:"broj_godina" bson:"broj_godina"`
+	KorisnikEmail string              `json:"korisnik_email" bson:"korisnik_email"`
+	Status        string              `json:"status" bson:"status"`
+	CreatedAt     time.Time           `json:"created_at" bson:"created_at"`
+	ProcessedAt   *time.Time          `json:"processed_at,omitempty" bson:"processed_at,omitempty"`
+	ProcessedBy   string              `json:"processed_by,omitempty" bson:"processed_by,omitempty"`
+}
+
+type UpisRequest struct {
+	VrticID      string `json:"vrtic_id"`
+	ImeRoditelja string `json:"ime_roditelja"`
+	ImeDeteta    string `json:"ime_deteta"`
+	BrojGodina   int    `json:"broj_godina"`
+}
+
 var vrticiCollection *mongo.Collection
+var zahteviCollection *mongo.Collection
 
 func main() {
 	initMongo()
@@ -136,8 +161,13 @@ func main() {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(views)
 		case http.MethodPost:
-			if _, err := requireAuth(r); err != nil {
+			claims, err := requireAuth(r)
+			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			if err := requireAdminRole(claims); err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
 				return
 			}
 
@@ -150,6 +180,12 @@ func main() {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
+
+			nov.CreatedBy = strings.ToLower(strings.TrimSpace(claimString(claims, "sub")))
+			if nov.CreatedBy == "" {
+				http.Error(w, "Neispravan token", http.StatusUnauthorized)
+				return
+			}
 			if err := insertVrtic(r.Context(), nov); err != nil {
 				http.Error(w, "Greska pri upisu u bazu", http.StatusInternalServerError)
 				return
@@ -159,6 +195,138 @@ func main() {
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
+	})
+
+	http.HandleFunc("/zahtevi-upisa/moji", func(w http.ResponseWriter, r *http.Request) {
+		enableCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		claims, err := requireAuth(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		if err := requireUserRole(claims); err != nil {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+
+		email := strings.ToLower(strings.TrimSpace(claimString(claims, "sub")))
+		items, err := getRequestsByUser(r.Context(), email)
+		if err != nil {
+			http.Error(w, "Greska pri citanju zahteva", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(items)
+	})
+
+	http.HandleFunc("/zahtevi-upisa", func(w http.ResponseWriter, r *http.Request) {
+		enableCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		switch r.Method {
+		case http.MethodPost:
+			claims, err := requireAuth(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			if err := requireUserRole(claims); err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+
+			var req UpisRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				http.Error(w, "Neispravan JSON", http.StatusBadRequest)
+				return
+			}
+
+			newReq, err := createEnrollmentRequest(r.Context(), claims, req)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(newReq)
+		case http.MethodGet:
+			claims, err := requireAuth(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			if err := requireAdminRole(claims); err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+
+			items, err := getAllRequests(r.Context())
+			if err != nil {
+				http.Error(w, "Greska pri citanju zahteva", http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(items)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	http.HandleFunc("/zahtevi-upisa/", func(w http.ResponseWriter, r *http.Request) {
+		enableCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		claims, err := requireAuth(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		if err := requireAdminRole(claims); err != nil {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+
+		id, action, err := parseRequestAction(r.URL.Path)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := processEnrollmentRequest(r.Context(), claims, id, action); err != nil {
+			status := http.StatusBadRequest
+			switch {
+			case errors.Is(err, mongo.ErrNoDocuments):
+				status = http.StatusNotFound
+			case strings.Contains(err.Error(), "Nemate dozvolu"):
+				status = http.StatusForbidden
+			}
+			http.Error(w, err.Error(), status)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	http.HandleFunc("/vrtici/", func(w http.ResponseWriter, r *http.Request) {
@@ -188,8 +356,27 @@ func main() {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(toViews([]Vrtic{vrtic})[0])
 		case http.MethodPut:
-			if _, err := requireAuth(r); err != nil {
+			claims, err := requireAuth(r)
+			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			if err := requireAdminRole(claims); err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+
+			existing, err := getVrticByID(r.Context(), id)
+			if err != nil {
+				if errors.Is(err, mongo.ErrNoDocuments) {
+					http.Error(w, "Vrtic nije pronadjen", http.StatusNotFound)
+					return
+				}
+				http.Error(w, "Greska pri citanju iz baze", http.StatusInternalServerError)
+				return
+			}
+			if err := ensureOwnership(claims, existing.CreatedBy); err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
 				return
 			}
 
@@ -202,6 +389,7 @@ func main() {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
+			up.CreatedBy = existing.CreatedBy
 
 			if err := updateVrtic(r.Context(), id, up); err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
@@ -214,8 +402,27 @@ func main() {
 
 			w.WriteHeader(http.StatusNoContent)
 		case http.MethodDelete:
-			if _, err := requireAuth(r); err != nil {
+			claims, err := requireAuth(r)
+			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			if err := requireAdminRole(claims); err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+
+			existing, err := getVrticByID(r.Context(), id)
+			if err != nil {
+				if errors.Is(err, mongo.ErrNoDocuments) {
+					http.Error(w, "Vrtic nije pronadjen", http.StatusNotFound)
+					return
+				}
+				http.Error(w, "Greska pri citanju iz baze", http.StatusInternalServerError)
+				return
+			}
+			if err := ensureOwnership(claims, existing.CreatedBy); err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
 				return
 			}
 
@@ -251,6 +458,22 @@ func parseVrticID(path string) (primitive.ObjectID, error) {
 	return id, nil
 }
 
+func parseRequestAction(path string) (primitive.ObjectID, string, error) {
+	parts := strings.Split(strings.Trim(strings.TrimPrefix(path, "/zahtevi-upisa/"), "/"), "/")
+	if len(parts) != 2 {
+		return primitive.NilObjectID, "", errors.New("Neispravan URL zahteva")
+	}
+	id, err := primitive.ObjectIDFromHex(parts[0])
+	if err != nil {
+		return primitive.NilObjectID, "", errors.New("Neispravan ID zahteva")
+	}
+	action := parts[1]
+	if action != "odobri" && action != "odbij" {
+		return primitive.NilObjectID, "", errors.New("Nepoznata akcija")
+	}
+	return id, action, nil
+}
+
 func validateVrticInput(v Vrtic) error {
 	if strings.TrimSpace(v.Naziv) == "" {
 		return errors.New("Naziv je obavezan")
@@ -264,22 +487,50 @@ func validateVrticInput(v Vrtic) error {
 	if v.TrenutnoUpisano < 0 {
 		return errors.New("Trenutno upisano mora biti >= 0")
 	}
+	if v.TrenutnoUpisano > v.MaxKapacitet {
+		return errors.New("Trenutno upisano ne moze biti vece od kapaciteta")
+	}
 	return nil
 }
 
-// func normalizeRole(role string) (string, error) {
-// 	r := strings.ToLower(strings.TrimSpace(role))
-// 	switch r {
-// 	case "", "korisnik":
-// 		return "korisnik", nil
-// 	case "sluzbenik":
-// 		return "sluzbenik", nil
-// 	case "admin":
-// 		return "admin", nil
-// 	default:
-// 		return "", errors.New("Neispravna rola (korisnik, sluzbenik, admin)")
-// 	}
-// }
+func validateEnrollmentInput(req UpisRequest) error {
+	if strings.TrimSpace(req.VrticID) == "" {
+		return errors.New("Vrtic je obavezan")
+	}
+	if strings.TrimSpace(req.ImeRoditelja) == "" {
+		return errors.New("Ime roditelja je obavezno")
+	}
+	if strings.TrimSpace(req.ImeDeteta) == "" {
+		return errors.New("Ime deteta je obavezno")
+	}
+	if req.BrojGodina <= 0 || req.BrojGodina > 7 {
+		return errors.New("Broj godina mora biti izmedju 1 i 7")
+	}
+	return nil
+}
+
+func requireAdminRole(claims jwt.MapClaims) error {
+	if strings.ToLower(strings.TrimSpace(claimString(claims, "role"))) == "admin" {
+		return nil
+	}
+	return errors.New("Nemate dozvolu za admin operacije")
+}
+
+func requireUserRole(claims jwt.MapClaims) error {
+	if strings.ToLower(strings.TrimSpace(claimString(claims, "role"))) == "korisnik" {
+		return nil
+	}
+	return errors.New("Samo korisnik moze slati zahtev za upis")
+}
+
+func ensureOwnership(claims jwt.MapClaims, createdBy string) error {
+	actor := strings.ToLower(strings.TrimSpace(claimString(claims, "sub")))
+	owner := strings.ToLower(strings.TrimSpace(createdBy))
+	if actor == "" || owner == "" || actor != owner {
+		return errors.New("Mozete menjati samo svoje vrtice")
+	}
+	return nil
+}
 
 func handleVrticiList(r *http.Request) ([]VrticView, error) {
 	all, err := getAllVrtici(r.Context())
@@ -287,14 +538,23 @@ func handleVrticiList(r *http.Request) ([]VrticView, error) {
 		return nil, err
 	}
 
-	tip := r.URL.Query().Get("tip")
+	tip := strings.TrimSpace(r.URL.Query().Get("tip"))
+	grad := strings.TrimSpace(r.URL.Query().Get("grad"))
+	opstina := strings.TrimSpace(r.URL.Query().Get("opstina"))
 	sortBy := r.URL.Query().Get("sort")
 
 	var filtered []Vrtic
 	for _, v := range all {
-		if tip == "" || v.Tip == tip {
-			filtered = append(filtered, v)
+		if tip != "" && v.Tip != tip {
+			continue
 		}
+		if grad != "" && !strings.EqualFold(v.Grad, grad) {
+			continue
+		}
+		if opstina != "" && !strings.EqualFold(v.Opstina, opstina) {
+			continue
+		}
+		filtered = append(filtered, v)
 	}
 
 	views := toViews(filtered)
@@ -360,6 +620,147 @@ func izvestajPoOpstini(ctx context.Context) ([]OpstinaIzvestaj, error) {
 	})
 
 	return report, nil
+}
+
+func createEnrollmentRequest(ctx context.Context, claims jwt.MapClaims, req UpisRequest) (*UpisZahtev, error) {
+	if err := validateEnrollmentInput(req); err != nil {
+		return nil, err
+	}
+
+	vrticID, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.VrticID))
+	if err != nil {
+		return nil, errors.New("Neispravan ID vrtica")
+	}
+
+	vrtic, err := getVrticByID(ctx, vrticID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("Vrtic nije pronadjen")
+		}
+		return nil, err
+	}
+
+	if slobodnaMesta(vrtic) <= 0 {
+		return nil, errors.New("Vrtic nema slobodnih mesta")
+	}
+
+	korisnikEmail := strings.ToLower(strings.TrimSpace(claimString(claims, "sub")))
+	if korisnikEmail == "" {
+		return nil, errors.New("Neispravan token")
+	}
+
+	exists, err := zahteviCollection.CountDocuments(ctx, bson.M{
+		"vrtic_id":       vrticID,
+		"korisnik_email": korisnikEmail,
+		"ime_deteta":     strings.TrimSpace(req.ImeDeteta),
+		"status":         bson.M{"$in": []string{"na_cekanju", "odobren"}},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if exists > 0 {
+		return nil, errors.New("Vec postoji aktivan zahtev za ovo dete u izabranom vrticu")
+	}
+
+	item := UpisZahtev{
+		VrticID:       vrticID,
+		VrticNaziv:    vrtic.Naziv,
+		VrticOwner:    vrtic.CreatedBy,
+		ImeRoditelja:  strings.TrimSpace(req.ImeRoditelja),
+		ImeDeteta:     strings.TrimSpace(req.ImeDeteta),
+		BrojGodina:    req.BrojGodina,
+		KorisnikEmail: korisnikEmail,
+		Status:        "na_cekanju",
+		CreatedAt:     time.Now(),
+	}
+
+	res, err := zahteviCollection.InsertOne(ctx, item)
+	if err != nil {
+		return nil, err
+	}
+	if id, ok := res.InsertedID.(primitive.ObjectID); ok {
+		item.ID = id
+	}
+	return &item, nil
+}
+
+func processEnrollmentRequest(ctx context.Context, claims jwt.MapClaims, id primitive.ObjectID, action string) error {
+	item, err := getRequestByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if item.Status != "na_cekanju" {
+		return errors.New("Zahtev je vec obradjen")
+	}
+	if err := ensureOwnership(claims, item.VrticOwner); err != nil {
+		return errors.New("Nemate dozvolu da obradite zahtev za tudji vrtic")
+	}
+
+	status := "odbijen"
+		if action == "odobri" {
+			vrtic, err := getVrticByID(ctx, item.VrticID)
+			if err != nil {
+				return err
+			}
+			if slobodnaMesta(vrtic) <= 0 {
+				return errors.New("Vrtic vise nema slobodnih mesta")
+			}
+			vrtic.TrenutnoUpisano++
+			if err := updateVrtic(ctx, vrtic.ID, vrtic); err != nil {
+				return err
+			}
+			status = "odobren"
+		}
+
+	now := time.Now()
+	_, err = zahteviCollection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{
+		"status":       status,
+		"processed_at": now,
+		"processed_by": strings.ToLower(strings.TrimSpace(claimString(claims, "sub"))),
+	}})
+	return err
+}
+
+func getAllRequests(ctx context.Context) ([]UpisZahtev, error) {
+	cursor, err := zahteviCollection.Find(ctx, bson.M{}, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var result []UpisZahtev
+	for cursor.Next(ctx) {
+		var item UpisZahtev
+		if err := cursor.Decode(&item); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, cursor.Err()
+}
+
+func getRequestsByUser(ctx context.Context, email string) ([]UpisZahtev, error) {
+	cursor, err := zahteviCollection.Find(ctx, bson.M{"korisnik_email": email}, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var result []UpisZahtev
+	for cursor.Next(ctx) {
+		var item UpisZahtev
+		if err := cursor.Decode(&item); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, cursor.Err()
+}
+
+func getRequestByID(ctx context.Context, id primitive.ObjectID) (UpisZahtev, error) {
+	var item UpisZahtev
+	err := zahteviCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&item)
+	return item, err
 }
 
 func buildOpstinaPDFReport(report []OpstinaIzvestaj) ([]byte, error) {
@@ -449,6 +850,7 @@ func toViews(vrtici []Vrtic) []VrticView {
 			Popunjenost:     popunjenost(v),
 			SlobodnaMesta:   slobodnaMesta(v),
 			Kriticno:        popunjenost(v) >= 0.9,
+			CreatedBy:       v.CreatedBy,
 		})
 	}
 	return views
@@ -485,9 +887,13 @@ func initMongo() {
 		log.Fatalf("Mongo ping error: %v", err)
 	}
 
-	vrticiCollection = client.Database(dbName).Collection(collectionName)
+	db := client.Database(dbName)
+	vrticiCollection = db.Collection(collectionName)
+	zahteviCollection = db.Collection("zahtevi_upisa")
 
 	ensureSeedData(ctx)
+	ensureLegacyOwners(ctx)
+	ensureRequestsIndexes(ctx)
 }
 
 func ensureSeedData(ctx context.Context) {
@@ -501,12 +907,32 @@ func ensureSeedData(ctx context.Context) {
 	}
 
 	seed := []interface{}{
-		Vrtic{Naziv: "Plavi Cuperak", Tip: "drzavni", Grad: "Beograd", Opstina: "Zvezdara", MaxKapacitet: 120, TrenutnoUpisano: 95},
-		Vrtic{Naziv: "Sumica", Tip: "privatni", Grad: "Beograd", Opstina: "Vozdovac", MaxKapacitet: 60, TrenutnoUpisano: 58},
+		Vrtic{Naziv: "Plavi Cuperak", Tip: "drzavni", Grad: "Beograd", Opstina: "Zvezdara", MaxKapacitet: 120, TrenutnoUpisano: 95, CreatedBy: "student@euprava.local"},
+		Vrtic{Naziv: "Sumica", Tip: "privatni", Grad: "Beograd", Opstina: "Vozdovac", MaxKapacitet: 60, TrenutnoUpisano: 58, CreatedBy: "student@euprava.local"},
 	}
 
 	if _, err := vrticiCollection.InsertMany(ctx, seed); err != nil {
 		log.Printf("Mongo seed insert error: %v", err)
+	}
+}
+
+func ensureLegacyOwners(ctx context.Context) {
+	_, err := vrticiCollection.UpdateMany(ctx, bson.M{
+		"$or": []bson.M{{"created_by": bson.M{"$exists": false}}, {"created_by": ""}},
+	}, bson.M{"$set": bson.M{"created_by": "student@euprava.local"}})
+	if err != nil {
+		log.Printf("Mongo owner backfill error: %v", err)
+	}
+}
+
+func ensureRequestsIndexes(ctx context.Context) {
+	_, err := zahteviCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "korisnik_email", Value: 1}}},
+		{Keys: bson.D{{Key: "vrtic_owner", Value: 1}}},
+		{Keys: bson.D{{Key: "status", Value: 1}}},
+	})
+	if err != nil {
+		log.Printf("Requests index warning: %v", err)
 	}
 }
 
@@ -547,6 +973,7 @@ func updateVrtic(ctx context.Context, id primitive.ObjectID, v Vrtic) error {
 		"opstina":          v.Opstina,
 		"max_kapacitet":    v.MaxKapacitet,
 		"trenutno_upisano": v.TrenutnoUpisano,
+		"created_by":       v.CreatedBy,
 	}})
 	if err != nil {
 		return err
@@ -558,6 +985,7 @@ func updateVrtic(ctx context.Context, id primitive.ObjectID, v Vrtic) error {
 }
 
 func deleteVrtic(ctx context.Context, id primitive.ObjectID) error {
+	_, _ = zahteviCollection.DeleteMany(ctx, bson.M{"vrtic_id": id, "status": bson.M{"$in": []string{"na_cekanju", "odbijen"}}})
 	res, err := vrticiCollection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		return err
@@ -592,6 +1020,18 @@ func requireAuth(r *http.Request) (jwt.MapClaims, error) {
 	}
 
 	return claims, nil
+}
+
+func claimString(claims jwt.MapClaims, key string) string {
+	value, ok := claims[key]
+	if !ok {
+		return ""
+	}
+	text, ok := value.(string)
+	if !ok {
+		return ""
+	}
+	return text
 }
 
 func getenvDefault(key, fallback string) string {

@@ -469,3 +469,57 @@ main {
     text-align: center;
   }
 }
+.status-chip {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  background: rgba(249, 168, 38, 0.18);
+  color: var(--accent);
+}
+
+.status-chip.ok {
+  background: rgba(38, 208, 206, 0.18);
+  color: var(--accent-2);
+}
+
+.status-chip.danger {
+  background: rgba(241, 93, 93, 0.18);
+  color: #ff8a8a;
+}
+
+.compare-card {
+  width: 100%;
+}
+
+.compare-results {
+  margin-top: 18px;
+}
+
+.compare-column,
+.compare-summary-card {
+  min-height: 100%;
+}
+
+.rating-box {
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--stroke);
+}
+
+.rating-box label {
+  color: var(--muted);
+}
+
+.rating-box select {
+  margin-top: 6px;
+}
+
+.rating-summary {
+  font-weight: 600;
+}

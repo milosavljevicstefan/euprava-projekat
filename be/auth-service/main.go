@@ -183,12 +183,10 @@ func normalizeRole(role string) (string, error) {
 	switch r {
 	case "", "korisnik":
 		return "korisnik", nil
-	case "sluzbenik":
-		return "sluzbenik", nil
 	case "admin":
 		return "admin", nil
 	default:
-		return "", errors.New("Neispravna rola (korisnik, sluzbenik, admin)")
+		return "", errors.New("Neispravna rola (korisnik, admin)")
 	}
 }
 
@@ -196,6 +194,9 @@ func registerUser(ctx context.Context, email, password, role string) error {
 	email = strings.TrimSpace(strings.ToLower(email))
 	if email == "" || password == "" {
 		return errors.New("Email i lozinka su obavezni")
+	}
+	if len(password) < 6 {
+		return errors.New("Lozinka mora imati najmanje 6 karaktera")
 	}
 
 	exists, err := usersCollection.CountDocuments(ctx, bson.M{"email": email})
@@ -250,7 +251,7 @@ func issueToken(email, role string) (string, int64, error) {
 		"sub":  email,
 		"role": role,
 		"exp":  exp,
-		"iss":  "preschool-service",
+		"iss":  "auth-service",
 		"aud":  "frontend",
 		"jti":  tokenID(email),
 	}
@@ -298,7 +299,6 @@ func initMongo() {
 
 	usersCollection = client.Database(dbName).Collection("users")
 
-	// unique index na email
 	_, err = usersCollection.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "email", Value: 1}},
 		Options: options.Index().SetUnique(true),
@@ -307,7 +307,15 @@ func initMongo() {
 		log.Printf("Users index warning: %v", err)
 	}
 
+	ensureRoleMigration(ctx)
 	ensureSeedUser(ctx)
+}
+
+func ensureRoleMigration(ctx context.Context) {
+	_, err := usersCollection.UpdateMany(ctx, bson.M{"role": "sluzbenik"}, bson.M{"$set": bson.M{"role": "admin"}})
+	if err != nil {
+		log.Printf("Users role migration warning: %v", err)
+	}
 }
 
 func ensureSeedUser(ctx context.Context) {
@@ -320,6 +328,7 @@ func ensureSeedUser(ctx context.Context) {
 		return
 	}
 	_ = registerUser(ctx, "student@euprava.local", "demo123", "admin")
+	_ = registerUser(ctx, "korisnik@euprava.local", "demo123", "korisnik")
 }
 
 func requireAuth(r *http.Request) (jwt.MapClaims, error) {

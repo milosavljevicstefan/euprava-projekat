@@ -23,18 +23,16 @@ services:
     environment:
       MONGO_URI: mongodb://mongo:27017
       MONGO_DB: euprava
-      MONGO_COLLECTION: users
       JWT_SECRET: dev-secret
       AUTH_SALT: dev-salt
     depends_on:
       - mongo
 
-  open-data-service:
-    build: ./open-data-service
+  analytics-app:
+    build: ./analytics-service
     ports:
       - "8082:8082"
-    depends_on:
-      - preschool-app
+    container_name: analytics-service
 
   mongo:
     image: mongo:7

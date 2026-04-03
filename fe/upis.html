@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | Upis deteta</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="upis">
+    <div class="bg-noise"></div>
+    <header class="hero hero-compact" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links"></div>
+      </nav>
+      <div class="page-title-wrap">
+        <p class="eyebrow">Korisnicki servis</p>
+        <h1>Upis deteta u vrtic</h1>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <section class="form-section">
+        <div class="form-card login-card">
+          <h2>Posalji zahtev za upis</h2>
+          <p>Korisnik bira vrtic i salje zahtev adminu na odobravanje.</p>
+          <form id="upis-form" novalidate>
+            <div class="grid">
+              <label>
+                Vrtic
+                <select id="upis-vrtic-id" name="vrtic_id" required></select>
+              </label>
+              <label>
+                Ime roditelja
+                <input name="ime_roditelja" required />
+              </label>
+              <label>
+                Ime deteta
+                <input name="ime_deteta" required />
+              </label>
+              <label>
+                Broj godina deteta
+                <input name="broj_godina" type="number" min="1" max="7" required />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn primary" type="submit">Posalji zahtev</button>
+              <span id="upis-status" class="muted"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Moji zahtevi za upis</h2>
+            <p>Ovde vidis da li je zahtev na cekanju, odobren ili odbijen.</p>
+          </div>
+        </div>
+        <div id="my-requests-list" class="cards"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
