@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | Open Data Analitika</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="analitika">
+    <div class="bg-noise"></div>
+    <header class="hero hero-compact" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links"></div>
+      </nav>
+      <div class="page-title-wrap">
+        <p class="eyebrow">Open Data</p>
+        <h1>Analitika i javni podaci</h1>
+      </div>
+    </header>
+    <main class="page-main">
+      <section class="form-section">
+        <div class="form-card">
+          <h2>Pokrivenost po opstini</h2>
+          <div class="grid">
+            <label>
+              Opstina
+              <input id="coverage-opstina" placeholder="npr. Limanski" />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" id="coverage-btn" type="button">Izracunaj</button>
+          </div>
+          <div id="coverage-result" class="cards"></div>
+        </div>
+      </section>
+      <section class="form-section">
+        <div class="form-card">
+          <h2>Projekcija</h2>
+          <div class="grid">
+            <label>
+              Broj godina
+              <input id="projection-years" type="number" min="1" value="1" />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" id="projection-btn" type="button">Prikazi projekciju</button>
+          </div>
+          <div id="projection-cards" class="cards"></div>
+        </div>
+      </section>
+      <section class="form-section">
+        <div class="form-card">
+          <h2>Javni podaci</h2>
+          <div class="form-actions">
+            <button class="btn secondary" id="download-public-btn" type="button">Preuzmi JSON</button>
+            <span id="public-download-status" class="muted"></span>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+    <script src="app.js"></script>
+  </body>
+</html>
