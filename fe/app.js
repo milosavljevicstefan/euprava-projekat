@@ -1,4 +1,3 @@
-
 const API_VRTICI = "http://localhost:8081";
 const API_AUTH = "http://localhost:8083";
 const OPEN_DATA_URL = "http://localhost:8082/analytics";
