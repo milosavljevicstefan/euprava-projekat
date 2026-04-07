@@ -1,0 +1,184 @@
+@startuml
+title E-Uprava - Dijagram klasa
+
+left to right direction
+skinparam classAttributeIconSize 0
+hide empty methods
+
+package "Auth Service" {
+  class User {
+    +id: ObjectID
+    +email: string
+    +role: string
+    +passwordHash: string
+    +createdAt: time
+  }
+
+  class RegisterRequest {
+    +email: string
+    +password: string
+    +role: string
+  }
+
+  class LoginRequest {
+    +email: string
+    +password: string
+  }
+
+  class AuthResponse {
+    +accessToken: string
+    +tokenType: string
+    +expiresIn: int64
+    +email: string
+    +role: string
+  }
+
+  class ProfileResponse {
+    +email: string
+    +role: string
+    +createdAt: time
+  }
+}
+
+package "Preschool Service" {
+  class Vrtic {
+    +id: ObjectID
+    +naziv: string
+    +tip: string
+    +grad: string
+    +opstina: string
+    +maxKapacitet: int
+    +trenutnoUpisano: int
+    +createdBy: string
+  }
+
+  class VrticView {
+    +id: ObjectID
+    +naziv: string
+    +tip: string
+    +grad: string
+    +opstina: string
+    +maxKapacitet: int
+    +trenutnoUpisano: int
+    +popunjenost: float64
+    +slobodnaMesta: int
+    +kriticno: bool
+    +createdBy: string
+  }
+
+  class OpstinaIzvestaj {
+    +opstina: string
+    +brojVrtica: int
+    +ukupanKapacitet: int
+    +ukupnoUpisano: int
+    +popunjenost: float64
+  }
+
+  class UpisRequest {
+    +vrticID: string
+    +imeRoditelja: string
+    +imeDeteta: string
+    +brojGodina: int
+  }
+
+  class UpisZahtev {
+    +id: ObjectID
+    +vrticID: ObjectID
+    +vrticNaziv: string
+    +vrticOwner: string
+    +imeRoditelja: string
+    +imeDeteta: string
+    +brojGodina: int
+    +korisnikEmail: string
+    +status: string
+    +createdAt: time
+    +processedAt: time
+    +processedBy: string
+  }
+
+  class RatingRequest {
+    +vrticID: string
+    +ocena: int
+  }
+
+  class OcenaVrtica {
+    +id: ObjectID
+    +vrticID: ObjectID
+    +korisnikEmail: string
+    +ocena: int
+    +createdAt: time
+    +updatedAt: time
+  }
+
+  class RatingSummary {
+    +vrticID: ObjectID
+    +prosecnaOcena: float64
+    +brojOcena: int
+  }
+}
+
+package "Open Data Service" {
+  class ExternalVrtic {
+    +naziv: string
+    +opstina: string
+    +maxKapacitet: int
+    +trenutnoUpisano: int
+    +popunjenost: float64
+    +slobodnaMesta: int
+    +kriticno: bool
+  }
+
+  class OpstinaReport {
+    +opstina: string
+    +brojVrtica: int
+    +ukupanKapacitet: int
+    +ukupnoUpisano: int
+    +popunjenost: float64
+  }
+
+  class CoverageResponse {
+    +opstina: string
+    +brojDece: int
+    +kapacitet: int
+    +deficit: int
+    +pokrivenost: float64
+  }
+}
+
+User "1" --> "0..*" Vrtic : kreira
+User "1" --> "0..*" UpisZahtev : podnosi
+User "1" --> "0..*" OcenaVrtica : ocenjuje
+Vrtic "1" --> "0..*" UpisZahtev : prima zahteve
+Vrtic "1" --> "0..*" OcenaVrtica : ima ocene
+
+UpisRequest ..> UpisZahtev : kreira zapis
+RegisterRequest ..> User : registracija
+LoginRequest ..> AuthResponse : prijava
+User ..> ProfileResponse : profil
+
+Vrtic ..> VrticView : mapiranje za API
+Vrtic ..> OpstinaIzvestaj : agregacija po opstini
+OcenaVrtica ..> RatingSummary : agregacija ocena
+
+ExternalVrtic ..> VrticView : preuzimanje preko API-ja
+OpstinaReport ..> OpstinaIzvestaj : preuzimanje preko API-ja
+CoverageResponse ..> OpstinaReport : obrada open data statistike
+
+note right of Vrtic
+Admin moze da menja i brise
+samo vrtice koje je sam kreirao.
+end note
+
+note bottom of UpisZahtev
+Status zahteva:
+- na_cekanju
+- odobren
+- odbijen
+end note
+
+note bottom of OcenaVrtica
+Korisnik moze da ostavi
+jednu ocenu po vrticu.
+end note
+
+@enduml
