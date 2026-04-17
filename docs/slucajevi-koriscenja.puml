@@ -1,128 +1,108 @@
 @startuml
-title E-Uprava - Dijagram slucajeva kori�cenja
+title E-Uprava - Use Case Dijagram
 
 left to right direction
-scale 1.4
-skinparam packageStyle rectangle
 skinparam shadowing false
-skinparam usecase {
-  BackgroundColor #F8FAFC
-  BorderColor #334155
-}
-skinparam actor {
-  BorderColor #0F172A
-  BackgroundColor #FFFFFF
-}
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam linetype ortho
 
-actor Gost
-actor Korisnik
+actor "Neregistrovani\nkorisnik" as Gost
+actor "Korisnik" as Korisnik
+actor "Admin" as Admin
 
-rectangle "Sistem E-Uprava - Vrtici" {
-  package "Javni deo" {
-    usecase UC1 as "Pregled vrtica"
-    usecase UC2 as "Filtriranje vrtica"
-    usecase UC3 as "Sortiranje i rangiranje vrtica"
-    usecase UC4 as "Poredenje vrtica"
-    usecase UC5 as "Pregled statistike"
-    usecase UC6 as "Pregled kriticno\npopunjenih vrtica"
-    usecase UC7 as "Pregled najboljih op�tina"
-    usecase UC8 as "Preuzimanje PDF\nizve�taja po op�tini"
+rectangle "E-Uprava - Sistem" {
+
+  package "Autentifikacija" {
+    usecase "Registracija" as UC_Register
+    usecase "Login" as UC_Login
+    usecase "Logout" as UC_Logout
+    usecase "Pregled profila" as UC_Profile
   }
 
-  package "Autentifikacija i korisnik" {
-    usecase UC9 as "Registracija"
-    usecase UC10 as "Prijava"
-    usecase UC11 as "Pregled profila"
-    usecase UC12 as "Slanje zahteva\nza upis deteta"
-    usecase UC13 as "Pregled sopstvenih\nzahteva za upis"
-    usecase UC14 as "Ocenjivanje vrtica"
+  package "Vrtić" {
+    usecase "Pregled vrtića" as UC_Vrtici
+    usecase "Pretraga i filtriranje" as UC_Filter
+    usecase "Sortiranje vrtića" as UC_Sort
+    usecase "Poređenje vrtića" as UC_Compare
+    usecase "Pregled detalja vrtića" as UC_Details
+
+    usecase "Slanje zahteva za upis" as UC_Enroll
+    usecase "Pregled mojih zahteva" as UC_MyEnroll
+    usecase "Ocenjivanje vrtića" as UC_Rate
+
+    usecase "Upravljanje vrtićima" as UC_Manage
+    usecase "Dodavanje vrtića" as UC_Create
+    usecase "Izmena vrtića" as UC_Update
+    usecase "Brisanje vrtića" as UC_Delete
+
+    usecase "Obrada zahteva za upis" as UC_Requests
+    usecase "Pregled svih zahteva" as UC_AllRequests
+    usecase "Odobravanje zahteva" as UC_Approve
+    usecase "Odbijanje zahteva" as UC_Reject
   }
 
-  package "Admin deo" {
-    usecase UC15 as "Dodavanje vrtica"
-    usecase UC16 as "Izmena vrtica"
-    usecase UC17 as "Brisanje vrtica"
-    usecase UC18 as "Pregled svih zahteva\nza upis"
-    usecase UC19 as "Odobravanje zahteva"
-    usecase UC20 as "Odbijanje zahteva"
-    usecase UC21 as "Open data analitika"
-    usecase UC22 as "Izracunavanje pokrivenosti"
-    usecase UC23 as "Projekcija potreba"
-    usecase UC24 as "Preuzimanje javnih\nJSON podataka"
+  package "Otvoreni podaci" {
+    usecase "Pregled otvorenih podataka" as UC_OpenData
+    usecase "Pregled statistike" as UC_Stats
+    usecase "Kritično popunjeni vrtići" as UC_Critical
+    usecase "Najbolje opštine" as UC_Ranking
+    usecase "Pokrivenost po opštini" as UC_Coverage
+    usecase "Projekcija potreba" as UC_Projection
+    usecase "PDF izveštaj po opštini" as UC_PDF
+    usecase "Preuzimanje JSON podataka" as UC_JSON
   }
 }
 
-actor Admin
+Gost --> UC_Register
+Gost --> UC_Login
+Gost --> UC_Vrtici
+Gost --> UC_OpenData
 
-Gost --> UC1
-Gost --> UC2
-Gost --> UC3
-Gost --> UC4
-Gost --> UC5
-Gost --> UC6
-Gost --> UC7
-Gost --> UC8
-Gost --> UC9
-Gost --> UC10
+Korisnik --> UC_Logout
+Korisnik --> UC_Profile
+Korisnik --> UC_Vrtici
+Korisnik --> UC_OpenData
+Korisnik --> UC_Enroll
+Korisnik --> UC_MyEnroll
+Korisnik --> UC_Rate
 
-Korisnik --> UC1
-Korisnik --> UC2
-Korisnik --> UC3
-Korisnik --> UC4
-Korisnik --> UC5
-Korisnik --> UC6
-Korisnik --> UC7
-Korisnik --> UC8
-Korisnik --> UC11
-Korisnik --> UC12
-Korisnik --> UC13
-Korisnik --> UC14
+Admin --> UC_Logout
+Admin --> UC_Profile
+Admin --> UC_Vrtici
+Admin --> UC_OpenData
+Admin --> UC_Manage
+Admin --> UC_Requests
 
-Admin --> UC1
-Admin --> UC2
-Admin --> UC3
-Admin --> UC5
-Admin --> UC6
-Admin --> UC7
-Admin --> UC8
-Admin --> UC11
-Admin --> UC15
-Admin --> UC16
-Admin --> UC17
-Admin --> UC18
-Admin --> UC19
-Admin --> UC20
-Admin --> UC21
-Admin --> UC22
-Admin --> UC23
-Admin --> UC24
+UC_Vrtici ..> UC_Filter : <<include>>
+UC_Vrtici ..> UC_Sort : <<include>>
+UC_Vrtici ..> UC_Compare : <<extend>>
+UC_Vrtici ..> UC_Details : <<include>>
 
-UC5 .> UC6 : <<include>>
-UC5 .> UC8 : <<extend>>
-UC21 .> UC22 : <<include>>
-UC21 .> UC23 : <<include>>
-UC21 .> UC24 : <<include>>
-UC18 .> UC19 : <<extend>>
-UC18 .> UC20 : <<extend>>
-UC1 .> UC2 : <<extend>>
-UC1 .> UC3 : <<extend>>
-UC1 .> UC4 : <<extend>>
+UC_Manage ..> UC_Create : <<include>>
+UC_Manage ..> UC_Update : <<include>>
+UC_Manage ..> UC_Delete : <<include>>
 
-note right of Gost
-Gost ima pristup samo
-javnim podacima i autentifikaciji.
-end note
+UC_Requests ..> UC_AllRequests : <<include>>
+UC_Requests ..> UC_Approve : <<include>>
+UC_Requests ..> UC_Reject : <<include>>
 
-note left of Admin
-Admin upravlja samo svojim vrticima
-i obraduje zahteve za svoje vrtice.
-end note
+UC_OpenData ..> UC_Stats : <<include>>
+UC_OpenData ..> UC_Critical : <<include>>
+UC_OpenData ..> UC_Ranking : <<include>>
+UC_OpenData ..> UC_Coverage : <<include>>
+UC_OpenData ..> UC_Projection : <<include>>
+UC_OpenData ..> UC_PDF : <<extend>>
+UC_OpenData ..> UC_JSON : <<extend>>
 
-note bottom of Korisnik
-Ulogovani korisnik mo�e da:
-- �alje zahtev za upis
-- prati svoje zahteve
-- ocenjuje vrtice
+Gost -[hidden]down- Korisnik
+Korisnik -[hidden]down- Admin
+
+note right of Admin
+Admin upravlja samo
+svojim vrtićima i
+obrađuje zahteve za
+svoje vrtiće.
 end note
 
 @enduml

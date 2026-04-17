@@ -84,13 +84,7 @@ func main() {
 			return
 		}
 
-		role, err := normalizeRole(req.Role)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		if err := registerUser(r.Context(), req.Email, req.Password, role); err != nil {
+		if err := registerUser(r.Context(), req.Email, req.Password, "korisnik"); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -186,7 +180,7 @@ func normalizeRole(role string) (string, error) {
 	case "admin":
 		return "admin", nil
 	default:
-		return "", errors.New("Neispravna rola (korisnik, admin)")
+		return "", errors.New("Neispravna rola (dozvoljen je samo korisnik)")
 	}
 }
 
@@ -370,3 +364,4 @@ func enableCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 }
+

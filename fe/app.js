@@ -161,10 +161,6 @@ function getDisplayedVrtici() {
   return filtered;
 }
 
-function isOwner(vrtic) {
-  const session = currentSession();
-  return !!session && String(vrtic.created_by || "").trim().toLowerCase() === session.email;
-}
 function renderFilters() {
   if (!el.filterGrad || !el.filterOpstina) return;
   const grads = uniqueValues("grad");
@@ -201,9 +197,7 @@ function vrticCardHTML(v, idx, mode = "public") {
   }
 
   if (mode === "admin") {
-    actionHTML = isOwner(v)
-      ? `<div class="card-actions"><button class="btn ghost small" data-action="edit" data-id="${v.id}">Izmeni</button><button class="btn danger small" data-action="delete" data-id="${v.id}">Obrisi</button></div>`
-      : `<div class="muted">Ovaj vrtic pripada drugom adminu.</div>`;
+    actionHTML = `<div class="card-actions"><button class="btn ghost small" data-action="edit" data-id="${v.id}">Izmeni</button><button class="btn danger small" data-action="delete" data-id="${v.id}">Obrisi</button></div>`;
   }
 
   return `
@@ -281,7 +275,7 @@ function populateVrticSelect() {
 }
 
 function requestStatusClass(status) { return status === "odobren" ? "status-chip ok" : status === "odbijen" ? "status-chip danger" : "status-chip"; }
-function canProcessRequest(item) { const session = currentSession(); return !!session && isAdminRole(session.role) && String(item.vrtic_owner || "").trim().toLowerCase() === session.email; }
+function canProcessRequest(item) { const session = currentSession(); return !!session && isAdminRole(session.role); }
 
 function renderMyRequests() {
   if (!el.myRequests) return;
@@ -302,7 +296,7 @@ function renderAdminRequests() {
     const actionable = item.status === "na_cekanju" && canProcessRequest(item);
     const card = document.createElement("article");
     card.className = "card";
-    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${item.status}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Vlasnik vrtica: ${item.vrtic_owner}</div><div class="muted">Korisnik: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div><div class="muted">Poslato: ${new Date(item.created_at).toLocaleString("sr-RS")}</div>${actionable ? `<div class="card-actions"><button class="btn secondary small" data-request-action="odobri" data-id="${item.id}">Odobri</button><button class="btn danger small" data-request-action="odbij" data-id="${item.id}">Odbij</button></div>` : `<div class="muted">Mozes obradjivati samo zahteve za svoje vrtice.</div>`}`;
+    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${item.status}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Vlasnik vrtica: ${item.vrtic_owner}</div><div class="muted">Korisnik: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div><div class="muted">Poslato: ${new Date(item.created_at).toLocaleString("sr-RS")}</div>${actionable ? `<div class="card-actions"><button class="btn secondary small" data-request-action="odobri" data-id="${item.id}">Odobri</button><button class="btn danger small" data-request-action="odbij" data-id="${item.id}">Odbij</button></div>` : `<div class="muted">Zahtev je vec obradjen.</div>`}`;
     el.adminRequests.appendChild(card);
   });
   if (!state.adminPrijave.length) el.adminRequests.innerHTML = "<div class='card'>Nema zahteva za upis.</div>";
@@ -521,12 +515,10 @@ function bindLoginEvents() {
 
 function bindRegisterEvents() {
   if (!el.registerForm || !el.registerStatus) return;
-  const roleSelect = el.registerForm.querySelector('select[name="role"]');
-  if (roleSelect) roleSelect.innerHTML = `<option value="korisnik">Korisnik</option><option value="admin">Admin</option>`;
-  el.registerForm.addEventListener("submit", async (e) => {
+el.registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(el.registerForm);
-    const payload = { email: String(formData.get("email") || "").trim(), password: String(formData.get("password") || ""), role: String(formData.get("role") || "korisnik").trim() };
+    const payload = { email: String(formData.get("email") || "").trim(), password: String(formData.get("password") || "") };
     el.registerStatus.textContent = "Registracija...";
     try {
       const res = await fetch(`${API_AUTH}/auth/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -924,3 +916,6 @@ ensureCompareSection();
 bindCompareEvents();
 bindRatingEvents();
 fetchRatingsSummary().then(() => renderAll());
+
+
+

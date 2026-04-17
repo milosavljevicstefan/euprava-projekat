@@ -375,10 +375,6 @@ func main() {
 				http.Error(w, "Greska pri citanju iz baze", http.StatusInternalServerError)
 				return
 			}
-			if err := ensureOwnership(claims, existing.CreatedBy); err != nil {
-				http.Error(w, err.Error(), http.StatusForbidden)
-				return
-			}
 
 			var up Vrtic
 			if err := json.NewDecoder(r.Body).Decode(&up); err != nil {
@@ -412,19 +408,6 @@ func main() {
 				return
 			}
 
-			existing, err := getVrticByID(r.Context(), id)
-			if err != nil {
-				if errors.Is(err, mongo.ErrNoDocuments) {
-					http.Error(w, "Vrtic nije pronadjen", http.StatusNotFound)
-					return
-				}
-				http.Error(w, "Greska pri citanju iz baze", http.StatusInternalServerError)
-				return
-			}
-			if err := ensureOwnership(claims, existing.CreatedBy); err != nil {
-				http.Error(w, err.Error(), http.StatusForbidden)
-				return
-			}
 
 			if err := deleteVrtic(r.Context(), id); err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
@@ -691,9 +674,6 @@ func processEnrollmentRequest(ctx context.Context, claims jwt.MapClaims, id prim
 	}
 	if item.Status != "na_cekanju" {
 		return errors.New("Zahtev je vec obradjen")
-	}
-	if err := ensureOwnership(claims, item.VrticOwner); err != nil {
-		return errors.New("Nemate dozvolu da obradite zahtev za tudji vrtic")
 	}
 
 	status := "odbijen"
@@ -1047,3 +1027,7 @@ func enableCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 }
+
+
+
+
