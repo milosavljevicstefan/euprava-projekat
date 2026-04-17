@@ -492,6 +492,16 @@ main {
   color: #ff8a8a;
 }
 
+.status-chip.info {
+  background: rgba(140, 177, 255, 0.18);
+  color: #b7caff;
+}
+
+.status-chip.warn {
+  background: rgba(249, 168, 38, 0.22);
+  color: #ffd48a;
+}
+
 .compare-card {
   width: 100%;
 }

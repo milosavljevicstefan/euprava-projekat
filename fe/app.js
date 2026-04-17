@@ -161,10 +161,7 @@ function getDisplayedVrtici() {
   return filtered;
 }
 
-function isOwner(vrtic) {
-  const session = currentSession();
-  return !!session && String(vrtic.created_by || "").trim().toLowerCase() === session.email;
-}
+
 function renderFilters() {
   if (!el.filterGrad || !el.filterOpstina) return;
   const grads = uniqueValues("grad");
@@ -201,9 +198,7 @@ function vrticCardHTML(v, idx, mode = "public") {
   }
 
   if (mode === "admin") {
-    actionHTML = isOwner(v)
-      ? `<div class="card-actions"><button class="btn ghost small" data-action="edit" data-id="${v.id}">Izmeni</button><button class="btn danger small" data-action="delete" data-id="${v.id}">Obrisi</button></div>`
-      : `<div class="muted">Ovaj vrtic pripada drugom adminu.</div>`;
+    actionHTML = `<div class="card-actions"><button class="btn ghost small" data-action="edit" data-id="${v.id}">Izmeni</button><button class="btn danger small" data-action="delete" data-id="${v.id}">Obrisi</button></div>`;
   }
 
   return `
@@ -215,7 +210,6 @@ function vrticCardHTML(v, idx, mode = "public") {
     <div class="muted">${v.trenutno_upisano || 0} / ${v.max_kapacitet || 0} upisano</div>
     <div class="muted">Slobodna mesta: ${freePlaces(v)}</div>
     <div class="muted">${v.kriticno ? "Kriticno popunjen" : "Stabilna popunjenost"}</div>
-    ${mode === "admin" ? `<div class="muted">Vlasnik: ${v.created_by || "sistem"}</div>` : ""}
     ${actionHTML}`;
 }
 
@@ -280,8 +274,25 @@ function populateVrticSelect() {
   if (requestedId && available.some((v) => String(v.id) === requestedId)) el.vrticSelect.value = requestedId;
 }
 
-function requestStatusClass(status) { return status === "odobren" ? "status-chip ok" : status === "odbijen" ? "status-chip danger" : "status-chip"; }
-function canProcessRequest(item) { const session = currentSession(); return !!session && isAdminRole(session.role) && String(item.vrtic_owner || "").trim().toLowerCase() === session.email; }
+function requestStatusClass(status) {
+  switch (String(status || "").toLowerCase()) {
+    case "odobren":
+      return "status-chip ok";
+    case "odbijen":
+      return "status-chip danger";
+    case "dopuna_dokumentacije":
+    case "na_listi_cekanja":
+      return "status-chip warn";
+    case "podnet":
+    case "na_cekanju":
+    case "u_obradi":
+    case "u_proveri":
+      return "status-chip info";
+    default:
+      return "status-chip";
+  }
+}
+function canProcessRequest(item) { const session = currentSession(); return !!session && isAdminRole(session.role); }
 
 function renderMyRequests() {
   if (!el.myRequests) return;
@@ -302,7 +313,7 @@ function renderAdminRequests() {
     const actionable = item.status === "na_cekanju" && canProcessRequest(item);
     const card = document.createElement("article");
     card.className = "card";
-    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${item.status}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Vlasnik vrtica: ${item.vrtic_owner}</div><div class="muted">Korisnik: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div><div class="muted">Poslato: ${new Date(item.created_at).toLocaleString("sr-RS")}</div>${actionable ? `<div class="card-actions"><button class="btn secondary small" data-request-action="odobri" data-id="${item.id}">Odobri</button><button class="btn danger small" data-request-action="odbij" data-id="${item.id}">Odbij</button></div>` : `<div class="muted">Mozes obradjivati samo zahteve za svoje vrtice.</div>`}`;
+    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${item.status}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Korisnik: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div><div class="muted">Poslato: ${new Date(item.created_at).toLocaleString("sr-RS")}</div>${actionable ? `<div class="card-actions"><button class="btn secondary small" data-request-action="odobri" data-id="${item.id}">Odobri</button><button class="btn danger small" data-request-action="odbij" data-id="${item.id}">Odbij</button></div>` : `<div class="muted">Zahtev je vec obradjen.</div>`}`;
     el.adminRequests.appendChild(card);
   });
   if (!state.adminPrijave.length) el.adminRequests.innerHTML = "<div class='card'>Nema zahteva za upis.</div>";
@@ -429,12 +440,16 @@ async function createEnrollmentRequest(payload) {
   return res.json();
 }
 
-async function processRequest(id, action) {
+async function processRequest(id, action, reason = "") {
   const session = currentSession();
   if (!session || !isAdminRole(session.role)) throw new Error("Samo admin moze obradjivati zahteve.");
   const headers = authHeaders();
   if (!headers) throw new Error("Prvo se uloguj.");
-  const res = await fetch(`${API_VRTICI}/zahtevi-upisa/${id}/${action}`, { method: "PUT", headers });
+  const res = await fetch(`${API_VRTICI}/zahtevi-upisa/${id}/${action}`, {
+    method: "PUT",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ reason: String(reason || "").trim() }),
+  });
   if (!res.ok) throw new Error(await res.text());
 }
 
@@ -521,12 +536,10 @@ function bindLoginEvents() {
 
 function bindRegisterEvents() {
   if (!el.registerForm || !el.registerStatus) return;
-  const roleSelect = el.registerForm.querySelector('select[name="role"]');
-  if (roleSelect) roleSelect.innerHTML = `<option value="korisnik">Korisnik</option><option value="admin">Admin</option>`;
   el.registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(el.registerForm);
-    const payload = { email: String(formData.get("email") || "").trim(), password: String(formData.get("password") || ""), role: String(formData.get("role") || "korisnik").trim() };
+    const payload = { email: String(formData.get("email") || "").trim(), password: String(formData.get("password") || "") };
     el.registerStatus.textContent = "Registracija...";
     try {
       const res = await fetch(`${API_AUTH}/auth/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -571,8 +584,15 @@ function bindUpisEvents() {
     };
     el.upisStatus.textContent = "Saljem zahtev...";
     try {
-      await createEnrollmentRequest(payload);
-      el.upisStatus.textContent = "Zahtev je poslat adminu na odobravanje.";
+      const created = await createEnrollmentRequest(payload);
+      const status = String(created?.status || "").toLowerCase();
+      const statusLabel = requestStatusLabel(status);
+      const reason = String(created?.reason || "").trim();
+      if (status === "na_listi_cekanja") {
+        el.upisStatus.textContent = reason || `Zahtev je evidentiran. Trenutni status: ${statusLabel}.`;
+      } else {
+        el.upisStatus.textContent = `Zahtev je poslat. Trenutni status: ${statusLabel}.`;
+      }
       el.upisForm.reset();
       populateVrticSelect();
       await fetchMyRequests();
@@ -581,12 +601,23 @@ function bindUpisEvents() {
 }
 
 function bindRequestAdminEvents() {
-  if (!el.adminRequests) return;
+  if (!el.adminRequests || el.adminRequests.dataset.boundRequests) return;
+  el.adminRequests.dataset.boundRequests = "1";
   el.adminRequests.addEventListener("click", async (e) => {
     const button = e.target.closest("button[data-request-action]");
     if (!button) return;
+    const action = String(button.dataset.requestAction || "").trim();
+    let reason = "";
+    if (action === "dopuna") {
+      reason = window.prompt("Upisi sta nedostaje u dokumentaciji:", "") || "";
+      if (!reason.trim()) return;
+    }
+    if (action === "odbij") {
+      reason = window.prompt("Upisi razlog odbijanja:", "") || "";
+      if (!reason.trim()) return;
+    }
     try {
-      await processRequest(button.dataset.id, button.dataset.requestAction);
+      await processRequest(button.dataset.id, action, reason);
       await fetchAdminRequests();
       await fetchVrtici();
       if (el.criticalCards) await fetchKriticni();
@@ -693,6 +724,7 @@ async function bootstrap() {
   bindProfileEvents();
   bindUpisEvents();
   bindRequestAdminEvents();
+  bindMyRequestEvents();
   bindReportActions();
   bindAnalyticsEvents();
   bindPublicDownload();
@@ -924,3 +956,318 @@ ensureCompareSection();
 bindCompareEvents();
 bindRatingEvents();
 fetchRatingsSummary().then(() => renderAll());
+
+state.konkursi = [];
+Object.assign(el, {
+  konkursForm: byId("konkurs-form"),
+  konkursStatus: byId("konkurs-status"),
+  konkursVrticSelect: byId("konkurs-vrtic-id"),
+  konkursCards: byId("konkurs-cards"),
+  upisKonkursInfo: byId("upis-konkurs-info"),
+});
+
+function formatDateTimeLocal(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("sr-RS");
+}
+
+function requestStatusLabel(status) {
+  switch (String(status || "").toLowerCase()) {
+    case "podnet":
+    case "na_cekanju":
+      return "Podnet";
+    case "u_obradi":
+    case "u_proveri":
+      return "U obradi";
+    case "dopuna_dokumentacije":
+      return "Dopuna dokumentacije";
+    case "na_listi_cekanja":
+      return "Na listi cekanja";
+    case "odobren":
+      return "Odobren";
+    case "odbijen":
+      return "Odbijen";
+    default:
+      return status || "Nepoznato";
+  }
+}
+
+function requestCanDownloadDecision(item) {
+  const status = String(item?.status || "").toLowerCase();
+  return status === "odobren" || status === "odbijen";
+}
+
+function requestMetaHtml(item) {
+  const details = [
+    `<div class="muted">Poslato: ${formatDateTimeLocal(item.created_at)}</div>`,
+  ];
+  if (item.processed_by) details.push(`<div class="muted">Obradio admin: ${item.processed_by}</div>`);
+  if (item.processed_at) details.push(`<div class="muted">Datum obrade: ${formatDateTimeLocal(item.processed_at)}</div>`);
+  if (item.reason) details.push(`<div class="muted">Napomena: ${item.reason}</div>`);
+  return details.join("");
+}
+
+function buildAdminRequestActions(item) {
+  const status = String(item?.status || "").toLowerCase();
+  if (status === "odobren" || status === "odbijen") return `<div class="muted">Zahtev je zavrsen.</div>`;
+  const actions = [];
+  if (status === "podnet" || status === "na_cekanju" || status === "dopuna_dokumentacije" || status === "na_listi_cekanja") {
+    actions.push(`<button class="btn ghost small" data-request-action="obrada" data-id="${item.id}">U obradi</button>`);
+  }
+  if (status === "podnet" || status === "na_cekanju" || status === "u_obradi" || status === "u_proveri" || status === "dopuna_dokumentacije" || status === "na_listi_cekanja") {
+    actions.push(`<button class="btn ghost small" data-request-action="dopuna" data-id="${item.id}">Dopuna</button>`);
+    actions.push(`<button class="btn secondary small" data-request-action="odobri" data-id="${item.id}">Odobri</button>`);
+    actions.push(`<button class="btn danger small" data-request-action="odbij" data-id="${item.id}">Odbij</button>`);
+  }
+  return actions.length ? `<div class="card-actions">${actions.join("")}</div>` : `<div class="muted">Zahtev je zavrsen.</div>`;
+}
+
+async function downloadRequestDecisionPdf(id) {
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/zahtevi-upisa/${id}/dokument`, { headers });
+  if (!res.ok) throw new Error(await res.text());
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  const fileName = match?.[1] || `zahtev-${id}.pdf`;
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+function bindMyRequestEvents() {
+  if (!el.myRequests || el.myRequests.dataset.boundRequestPdf) return;
+  el.myRequests.dataset.boundRequestPdf = "1";
+  el.myRequests.addEventListener("click", async (e) => {
+    const button = e.target.closest("button[data-request-pdf]");
+    if (!button) return;
+    const oldLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = "Preuzimam...";
+    try {
+      await downloadRequestDecisionPdf(button.dataset.requestPdf);
+    } catch (err) {
+      window.alert(err.message || "PDF nije dostupan.");
+    } finally {
+      button.disabled = false;
+      button.textContent = oldLabel;
+    }
+  });
+}
+
+function konkursForVrtic(vrticId, preferActive = true) {
+  const matches = state.konkursi.filter((item) => String(item.vrtic_id) === String(vrticId));
+  if (!matches.length) return null;
+  matches.sort((a, b) => new Date(b.datum_pocetka || 0).getTime() - new Date(a.datum_pocetka || 0).getTime());
+  if (preferActive) {
+    const active = matches.find((item) => item.status === "aktivan");
+    if (active) return active;
+  }
+  return matches[0];
+}
+
+function activeKonkursForVrtic(vrticId) {
+  return state.konkursi.find((item) => String(item.vrtic_id) === String(vrticId) && item.status === "aktivan") || null;
+}
+
+function populateKonkursVrticSelect() {
+  if (!el.konkursVrticSelect) return;
+  const options = [...state.vrtici]
+    .sort((a, b) => String(a.naziv || "").localeCompare(String(b.naziv || ""), "sr"))
+    .map((v) => `<option value="${v.id}">${v.naziv} (${v.grad} - ${v.opstina})</option>`)
+    .join("");
+  el.konkursVrticSelect.innerHTML = `<option value="">Izaberi vrtic</option>${options}`;
+}
+
+const __basePopulateVrticSelectForKonkurs = populateVrticSelect;
+populateVrticSelect = function() {
+  if (!el.vrticSelect) return;
+  const available = [...state.vrtici]
+    .filter((v) => activeKonkursForVrtic(v.id))
+    .sort((a, b) => String(a.naziv || "").localeCompare(String(b.naziv || ""), "sr"));
+
+  el.vrticSelect.innerHTML = `<option value="">Izaberi vrtic sa aktivnim konkursom</option>${available.map((v) => {
+    const konkurs = activeKonkursForVrtic(v.id);
+    const konkursSeats = Number(konkurs?.slobodna_mesta || 0);
+    const vrticSeats = freePlaces(v);
+    const waitingList = konkursSeats <= 0 || vrticSeats <= 0;
+    const suffix = waitingList ? "lista cekanja" : `slobodna mesta: ${Math.min(konkursSeats, vrticSeats)}`;
+    return `<option value="${v.id}">${v.naziv} (${v.grad} - ${v.opstina}) - ${suffix}</option>`;
+  }).join("")}`;
+
+  const requestedId = new URLSearchParams(window.location.search).get("vrtic");
+  if (requestedId && available.some((v) => String(v.id) === requestedId)) el.vrticSelect.value = requestedId;
+  renderUpisKonkursInfo();
+};
+
+renderMyRequests = function() {
+  if (!el.myRequests) return;
+  el.myRequests.innerHTML = "";
+  state.mojePrijave.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    const pdfButton = requestCanDownloadDecision(item)
+      ? `<div class="card-actions"><button class="btn secondary small" type="button" data-request-pdf="${item.id}">${String(item.status || "").toLowerCase() === "odobren" ? "Preuzmi potvrdu" : "Preuzmi odbijenicu"}</button></div>`
+      : "";
+    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${requestStatusLabel(item.status)}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Roditelj: ${item.ime_roditelja}</div><div class="muted">Dete: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div>${requestMetaHtml(item)}${pdfButton}`;
+    el.myRequests.appendChild(card);
+  });
+  if (!state.mojePrijave.length) el.myRequests.innerHTML = "<div class='card'>Jos nema poslatih zahteva.</div>";
+};
+
+renderAdminRequests = function() {
+  if (!el.adminRequests) return;
+  el.adminRequests.innerHTML = "";
+  state.adminPrijave.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    const actions = buildAdminRequestActions(item);
+    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${requestStatusLabel(item.status)}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Korisnik: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div>${requestMetaHtml(item)}${actions}`;
+    el.adminRequests.appendChild(card);
+  });
+  if (!state.adminPrijave.length) el.adminRequests.innerHTML = "<div class='card'>Nema zahteva za upis.</div>";
+};
+
+function renderKonkursCards() {
+  if (!el.konkursCards) return;
+  el.konkursCards.innerHTML = "";
+  state.konkursi.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    const closable = item.status === "aktivan" || item.status === "zakazan";
+    card.innerHTML = `<div class="${requestStatusClass(item.status === "aktivan" ? "odobren" : item.status === "zatvoren" ? "odbijen" : "u_proveri")}">${item.status}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Period: ${formatDateTimeLocal(item.datum_pocetka)} - ${formatDateTimeLocal(item.datum_zavrsetka)}</div><div class="muted">Mesta na konkursu: ${item.max_mesta}</div><div class="muted">Popunjeno kroz konkurs: ${item.popunjeno}</div><div class="muted">Slobodna mesta na konkursu: ${item.slobodna_mesta}</div>${closable ? `<div class="card-actions"><button class="btn danger small" type="button" data-konkurs-close="${item.id}">Zatvori konkurs</button></div>` : `<div class="muted">Konkurs nije moguce dodatno menjati.</div>`}`;
+    el.konkursCards.appendChild(card);
+  });
+  if (!state.konkursi.length) el.konkursCards.innerHTML = "<div class='card'>Jos nema raspisanih konkursa.</div>";
+}
+
+function renderUpisKonkursInfo() {
+  if (!el.upisKonkursInfo) return;
+  const selectedId = el.vrticSelect?.value || new URLSearchParams(window.location.search).get("vrtic") || "";
+  const selectedKonkurs = selectedId ? konkursForVrtic(selectedId) : null;
+  const list = selectedKonkurs ? [selectedKonkurs] : state.konkursi.filter((item) => item.status === "aktivan");
+
+  el.upisKonkursInfo.innerHTML = "";
+  list.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    const vrtic = state.vrtici.find((row) => String(row.id) === String(item.vrtic_id));
+    const vrticSeats = vrtic ? freePlaces(vrtic) : 0;
+    const konkursSeats = Number(item.slobodna_mesta || 0);
+    const waitingList = konkursSeats <= 0 || vrticSeats <= 0;
+    card.innerHTML = `<div class="${requestStatusClass(item.status === "aktivan" ? (waitingList ? "na_listi_cekanja" : "odobren") : "u_obradi")}">${item.status}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Period konkursa: ${formatDateTimeLocal(item.datum_pocetka)} - ${formatDateTimeLocal(item.datum_zavrsetka)}</div><div class="muted">Mesta na konkursu: ${item.max_mesta}</div><div class="muted">Preostalo mesta za prijavu: ${item.slobodna_mesta}</div>${waitingList ? `<div class="muted">Trenutno nema slobodnih mesta. Novi zahtevi idu na listu cekanja.</div>` : ""}`;
+    el.upisKonkursInfo.appendChild(card);
+  });
+  if (!list.length) el.upisKonkursInfo.innerHTML = "<div class='card'>Trenutno nema aktivnih konkursa. Upis je moguc tek kada admin raspise konkurs za odredjeni vrtic.</div>";
+}
+
+async function fetchKonkursi() {
+  try {
+    const res = await fetch(`${API_VRTICI}/konkursi`);
+    if (!res.ok) throw new Error("Ne mogu da ucitam konkurse");
+    const data = await res.json(); state.konkursi = Array.isArray(data) ? data : [];
+    renderAll();
+  } catch (_err) {
+    state.konkursi = [];
+    renderAll();
+  }
+}
+
+async function createKonkurs(payload) {
+  const session = currentSession();
+  if (!session || !isAdminRole(session.role)) throw new Error("Samo admin moze da raspisuje konkurs.");
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/konkursi`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function closeKonkursById(id) {
+  const session = currentSession();
+  if (!session || !isAdminRole(session.role)) throw new Error("Samo admin moze da zatvori konkurs.");
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/konkursi/${id}/zatvori`, { method: "PUT", headers });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+function bindKonkursEvents() {
+  if (el.konkursForm && !el.konkursForm.dataset.bound) {
+    el.konkursForm.dataset.bound = "1";
+    el.konkursForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(el.konkursForm);
+      const payload = {
+        vrtic_id: String(formData.get("vrtic_id") || "").trim(),
+        datum_pocetka: String(formData.get("datum_pocetka") || "").trim(),
+        datum_zavrsetka: String(formData.get("datum_zavrsetka") || "").trim(),
+        max_mesta: Number(formData.get("max_mesta") || 0),
+      };
+      if (el.konkursStatus) el.konkursStatus.textContent = "Raspisujem konkurs...";
+      try {
+        await createKonkurs(payload);
+        if (el.konkursStatus) el.konkursStatus.textContent = "Konkurs je uspesno raspisan.";
+        el.konkursForm.reset();
+        await fetchKonkursi();
+      } catch (err) {
+        if (el.konkursStatus) el.konkursStatus.textContent = `Greska: ${err.message || "Neuspesno"}`;
+      }
+    });
+  }
+
+  if (el.konkursCards && !el.konkursCards.dataset.bound) {
+    el.konkursCards.dataset.bound = "1";
+    el.konkursCards.addEventListener("click", async (e) => {
+      const button = e.target.closest("button[data-konkurs-close]");
+      if (!button) return;
+      if (!window.confirm("Zatvori ovaj konkurs?")) return;
+      try {
+        await closeKonkursById(button.dataset.konkursClose);
+        if (el.konkursStatus) el.konkursStatus.textContent = "Konkurs je zatvoren.";
+        await fetchKonkursi();
+      } catch (err) {
+        if (el.konkursStatus) el.konkursStatus.textContent = `Greska: ${err.message || "Neuspesno"}`;
+      }
+    });
+  }
+
+  if (el.vrticSelect && !el.vrticSelect.dataset.konkursBound) {
+    el.vrticSelect.dataset.konkursBound = "1";
+    el.vrticSelect.addEventListener("change", renderUpisKonkursInfo);
+  }
+}
+
+const __vrticCardHTMLWithRatings = vrticCardHTML;
+vrticCardHTML = function(v, idx, mode = "public") {
+  const html = __vrticCardHTMLWithRatings(v, idx, mode);
+  const konkurs = konkursForVrtic(v.id, mode !== "admin");
+  if (!konkurs) return `${html}<div class="muted">Konkurs: trenutno nije raspisan.</div>`;
+  return `${html}<div class="muted">Konkurs: ${konkurs.status} | ${formatDateTimeLocal(konkurs.datum_pocetka)} - ${formatDateTimeLocal(konkurs.datum_zavrsetka)}</div><div class="muted">Mesta na konkursu: ${konkurs.slobodna_mesta}/${konkurs.max_mesta}</div>`;
+};
+
+const __renderAllWithCompareAndRatings = renderAll;
+renderAll = function() {
+  __renderAllWithCompareAndRatings();
+  populateKonkursVrticSelect();
+  renderKonkursCards();
+  renderUpisKonkursInfo();
+};
+
+async function initKonkursFeature() {
+  bindKonkursEvents();
+  await fetchKonkursi();
+  if (el.myRequests) await fetchMyRequests();
+  if (el.adminRequests) await fetchAdminRequests();
+}
+
+initKonkursFeature();
+
