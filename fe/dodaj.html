@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="sr">
   <head>
     <meta charset="UTF-8" />
@@ -21,7 +21,7 @@
         <div class="nav-links">
           <a href="index.html" data-nav="vrtici">Vrtici</a>
           <a href="statistika.html" data-nav="statistika">Statistika</a>
-          <a href="ranking.html" data-nav="opstine">Najbolje op�tine</a>
+          <a href="ranking.html" data-nav="opstine">Najbolje opštine</a>
           <a href="dodaj.html" data-nav="dodaj">CRUD</a>
           <a href="analitika.html" data-nav="analitika">Open Data Analitika</a>
           <a href="login.html" data-nav="login">Login</a>
@@ -112,6 +112,39 @@
         </div>
       </section>
 
+      <section class="form-section" id="raspored-admin">
+        <div class="form-card">
+          <h2>Rasporedi vaspitača po vrtiću</h2>
+          <p>Admin određuje u kom vrtiću radi vaspitač i time omogućava roditeljima zakazivanje sastanka.</p>
+          <form id="assignment-form">
+            <div class="grid">
+              <label>
+                Vrtic
+                <select id="assignment-vrtic-id" name="vrtic_id" required></select>
+              </label>
+              <label>
+                Vaspitac
+                <select id="assignment-educator-email" name="vaspitac_email" required></select>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn secondary" type="submit">Sačuvaj raspored</button>
+              <span id="assignment-status" class="muted"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Aktivni rasporedi vaspitača</h2>
+            <p>Pregled svih trenutnih dodela po vrtićima.</p>
+          </div>
+        </div>
+        <div id="assignment-cards" class="cards"></div>
+      </section>
+
       <section class="vrtici">
         <div class="section-head">
           <div>
@@ -141,6 +174,7 @@
     <script src="app.js"></script>
   </body>
 </html>
+
 
 
 

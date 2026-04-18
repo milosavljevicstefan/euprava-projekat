@@ -19,12 +19,12 @@ import (
 )
 
 type OcenaVrtica struct {
-	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	VrticID      primitive.ObjectID `json:"vrtic_id" bson:"vrtic_id"`
-	KorisnikEmail string            `json:"korisnik_email" bson:"korisnik_email"`
-	Ocena        int                `json:"ocena" bson:"ocena"`
-	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
+	ID            primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	VrticID       primitive.ObjectID `json:"vrtic_id" bson:"vrtic_id"`
+	KorisnikEmail string             `json:"korisnik_email" bson:"korisnik_email"`
+	Ocena         int                `json:"ocena" bson:"ocena"`
+	CreatedAt     time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at" bson:"updated_at"`
 }
 
 type RatingRequest struct {
@@ -33,9 +33,9 @@ type RatingRequest struct {
 }
 
 type RatingSummary struct {
-	VrticID        primitive.ObjectID `json:"vrtic_id"`
-	ProsecnaOcena  float64            `json:"prosecna_ocena"`
-	BrojOcena      int                `json:"broj_ocena"`
+	VrticID       primitive.ObjectID `json:"vrtic_id"`
+	ProsecnaOcena float64            `json:"prosecna_ocena"`
+	BrojOcena     int                `json:"broj_ocena"`
 }
 
 var oceneCollection *mongo.Collection
@@ -169,7 +169,10 @@ func getRatingsSummary(ctx context.Context) ([]RatingSummary, error) {
 	}
 	defer cursor.Close(ctx)
 
-	type agg struct { total int; count int }
+	type agg struct {
+		total int
+		count int
+	}
 	byVrtic := map[primitive.ObjectID]*agg{}
 	for cursor.Next(ctx) {
 		var item OcenaVrtica

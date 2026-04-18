@@ -11,6 +11,7 @@ const PAGE_BY_FILE = {
   "dodaj.html": "dodaj",
   "zahtevi.html": "zahtevi",
   "analitika.html": "analitika",
+  "vaspitac.html": "vaspitac",
   "login.html": "login",
   "registracija.html": "registracija",
   "profil.html": "profil",
@@ -19,6 +20,7 @@ const PAGE_BY_FILE = {
 const PUBLIC_PAGES = new Set(["vrtici", "statistika", "opstine", "login", "registracija"]);
 const USER_ONLY_PAGES = new Set(["upis", "profil"]);
 const ADMIN_ONLY_PAGES = new Set(["dodaj", "zahtevi", "analitika", "profil"]);
+const EDUCATOR_ONLY_PAGES = new Set(["vaspitac", "profil"]);
 
 const NAV_LINKS = [
   { href: "index.html", nav: "vrtici", label: "Vrtici" },
@@ -28,6 +30,7 @@ const NAV_LINKS = [
   { href: "dodaj.html", nav: "dodaj", label: "CRUD" },
   { href: "zahtevi.html", nav: "zahtevi", label: "Zahtevi" },
   { href: "analitika.html", nav: "analitika", label: "Open Data Analitika" },
+  { href: "vaspitac.html", nav: "vaspitac", label: "Vaspitac" },
   { href: "login.html", nav: "login", label: "Login" },
   { href: "registracija.html", nav: "registracija", label: "Registracija" },
   { href: "profil.html", nav: "profil", label: "Profil" },
@@ -45,6 +48,7 @@ const state = {
   search: "",
   sortMode: "naziv",
   editingVrticId: "",
+  editingRequestId: "",
 };
 
 function byId(id) { return document.getElementById(id); }
@@ -61,6 +65,10 @@ const el = {
   upisForm: byId("upis-form"), upisStatus: byId("upis-status"), vrticSelect: byId("upis-vrtic-id"),
   downloadReport: byId("download-opstina-report"), reportStatus: byId("report-status"),
   profileEmail: byId("profile-email"), profileRole: byId("profile-role"), profileCreated: byId("profile-created"), profileStatus: byId("profile-status"), profileRefresh: byId("profile-refresh"), profileLogout: byId("profile-logout"),
+  assignmentForm: byId("assignment-form"), assignmentStatus: byId("assignment-status"), assignmentVrticSelect: byId("assignment-vrtic-id"), assignmentEducatorSelect: byId("assignment-educator-email"), assignmentCards: byId("assignment-cards"),
+  roditeljOptions: byId("parent-educator-options"), sastanakForm: byId("sastanak-form"), sastanakStatus: byId("sastanak-status"), sastanakZahtevSelect: byId("sastanak-zahtev-id"), sastanakEducatorSelect: byId("sastanak-vaspitac-email"), myMeetings: byId("my-meetings-list"), myNotifications: byId("my-notifications-list"),
+  educatorChildren: byId("educator-children-list"), educatorMeetings: byId("educator-meetings-list"), educatorNoticeForm: byId("educator-notice-form"), educatorNoticeStatus: byId("educator-notice-status"), educatorChildSelect: byId("educator-zahtev-id"),
+  upisFormTitle: byId("upis-form-title"), upisSubmitBtn: byId("upis-submit-btn"), upisCancelEdit: byId("upis-cancel-edit"),
 };
 
 function currentFileName() {
@@ -97,8 +105,14 @@ function currentSession() {
 }
 
 function isAdminRole(role) { return role === "admin"; }
-function isUserRole(role) { return role === "korisnik"; }
-function roleLabel(role) { return role === "admin" ? "Admin" : role === "korisnik" ? "Korisnik" : "Gost"; }
+function isUserRole(role) { return role === "roditelj" || role === "korisnik"; }
+function isEducatorRole(role) { return role === "vaspitac"; }
+function roleLabel(role) { return role === "admin" ? "Admin" : isUserRole(role) ? "Roditelj" : role === "vaspitac" ? "Vaspitac" : "Gost"; }
+function landingPageForRole(role) {
+  if (isAdminRole(normalizeRole(role))) return "dodaj.html";
+  if (isEducatorRole(normalizeRole(role))) return "vaspitac.html";
+  return "index.html";
+}
 function authHeaders() { return tokenStore.access ? { Authorization: `Bearer ${tokenStore.access}` } : null; }
 function redirectTo(fileName) { if (currentFileName() !== fileName) window.location.replace(fileName); }
 
@@ -112,6 +126,7 @@ function canAccessPage(session, targetPage) {
   if (!session) return PUBLIC_PAGES.has(targetPage);
   if (isAdminRole(session.role)) return !["login", "registracija"].includes(targetPage) && (PUBLIC_PAGES.has(targetPage) || ADMIN_ONLY_PAGES.has(targetPage));
   if (isUserRole(session.role)) return !["login", "registracija"].includes(targetPage) && (PUBLIC_PAGES.has(targetPage) || USER_ONLY_PAGES.has(targetPage));
+  if (isEducatorRole(session.role)) return !["login", "registracija"].includes(targetPage) && (PUBLIC_PAGES.has(targetPage) || EDUCATOR_ONLY_PAGES.has(targetPage));
   return false;
 }
 
@@ -313,7 +328,7 @@ function renderAdminRequests() {
     const actionable = item.status === "na_cekanju" && canProcessRequest(item);
     const card = document.createElement("article");
     card.className = "card";
-    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${item.status}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Korisnik: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div><div class="muted">Poslato: ${new Date(item.created_at).toLocaleString("sr-RS")}</div>${actionable ? `<div class="card-actions"><button class="btn secondary small" data-request-action="odobri" data-id="${item.id}">Odobri</button><button class="btn danger small" data-request-action="odbij" data-id="${item.id}">Odbij</button></div>` : `<div class="muted">Zahtev je vec obradjen.</div>`}`;
+    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${item.status}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Roditelj nalog: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div><div class="muted">Poslato: ${new Date(item.created_at).toLocaleString("sr-RS")}</div>${actionable ? `<div class="card-actions"><button class="btn secondary small" data-request-action="odobri" data-id="${item.id}">Odobri</button><button class="btn danger small" data-request-action="odbij" data-id="${item.id}">Odbij</button></div>` : `<div class="muted">Zahtev je vec obradjen.</div>`}`;
     el.adminRequests.appendChild(card);
   });
   if (!state.adminPrijave.length) el.adminRequests.innerHTML = "<div class='card'>Nema zahteva za upis.</div>";
@@ -432,12 +447,47 @@ async function deleteVrticById(id) {
 
 async function createEnrollmentRequest(payload) {
   const session = currentSession();
-  if (!session || !isUserRole(session.role)) throw new Error("Samo ulogovan korisnik moze slati zahtev za upis.");
+  if (!session || !isUserRole(session.role)) throw new Error("Samo ulogovan roditelj moze slati zahtev za upis.");
   const headers = authHeaders();
   if (!headers) throw new Error("Prvo se uloguj.");
   const res = await fetch(`${API_VRTICI}/zahtevi-upisa`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+async function updateEnrollmentRequestById(id, payload) {
+  const session = currentSession();
+  if (!session || !isUserRole(session.role)) throw new Error("Samo ulogovan roditelj moze menjati zahtev za upis.");
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/zahtevi-upisa/${id}/izmeni`, {
+    method: "PUT",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function setRequestEditMode(item) {
+  state.editingRequestId = String(item?.id || "");
+  if (el.upisFormTitle) el.upisFormTitle.textContent = "Izmeni zahtev za upis";
+  if (el.upisSubmitBtn) el.upisSubmitBtn.textContent = "Sačuvaj izmene";
+  if (el.upisCancelEdit) el.upisCancelEdit.hidden = false;
+  if (!el.upisForm) return;
+  el.upisForm.elements["vrtic_id"].value = String(item.vrtic_id || "");
+  el.upisForm.elements["ime_roditelja"].value = String(item.ime_roditelja || "");
+  el.upisForm.elements["ime_deteta"].value = String(item.ime_deteta || "");
+  el.upisForm.elements["broj_godina"].value = Number(item.broj_godina || 0) || "";
+  el.upisForm.elements["potvrda_vakcinacije"].checked = !!item.potvrda_vakcinacije;
+  el.upisForm.elements["izvod_iz_maticne_knjige"].checked = !!item.izvod_iz_maticne_knjige;
+}
+
+function resetRequestEditMode() {
+  state.editingRequestId = "";
+  if (el.upisFormTitle) el.upisFormTitle.textContent = "Posalji zahtev za upis";
+  if (el.upisSubmitBtn) el.upisSubmitBtn.textContent = "Posalji zahtev";
+  if (el.upisCancelEdit) el.upisCancelEdit.hidden = true;
 }
 
 async function processRequest(id, action, reason = "") {
@@ -529,7 +579,7 @@ function bindLoginEvents() {
       tokenStore.set(data.access_token);
       el.loginStatus.textContent = "Ulogovan.";
       el.userInfo.textContent = `Trenutno ulogovan: ${data.email} (${roleLabel(data.role)})`;
-      setTimeout(() => redirectTo("index.html"), 500);
+      setTimeout(() => redirectTo(landingPageForRole(data.role)), 500);
     } catch (err) { el.loginStatus.textContent = `Neuspesna prijava: ${err.message}`; }
   });
 }
@@ -573,6 +623,15 @@ function bindProfileEvents() {
 }
 function bindUpisEvents() {
   if (!el.upisForm || !el.upisStatus) return;
+  if (el.upisCancelEdit && !el.upisCancelEdit.dataset.bound) {
+    el.upisCancelEdit.dataset.bound = "1";
+    el.upisCancelEdit.addEventListener("click", () => {
+      el.upisForm.reset();
+      resetRequestEditMode();
+      populateVrticSelect();
+      if (el.upisStatus) el.upisStatus.textContent = "";
+    });
+  }
   el.upisForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(el.upisForm);
@@ -581,21 +640,29 @@ function bindUpisEvents() {
       ime_roditelja: String(formData.get("ime_roditelja") || "").trim(),
       ime_deteta: String(formData.get("ime_deteta") || "").trim(),
       broj_godina: Number(formData.get("broj_godina") || 0),
+      potvrda_vakcinacije: formData.get("potvrda_vakcinacije") !== null,
+      izvod_iz_maticne_knjige: formData.get("izvod_iz_maticne_knjige") !== null,
     };
-    el.upisStatus.textContent = "Saljem zahtev...";
+    el.upisStatus.textContent = state.editingRequestId ? "Cuvam izmene..." : "Saljem zahtev...";
     try {
-      const created = await createEnrollmentRequest(payload);
+      const created = state.editingRequestId
+        ? await updateEnrollmentRequestById(state.editingRequestId, payload)
+        : await createEnrollmentRequest(payload);
       const status = String(created?.status || "").toLowerCase();
       const statusLabel = requestStatusLabel(status);
       const reason = String(created?.reason || "").trim();
       if (status === "na_listi_cekanja") {
-        el.upisStatus.textContent = reason || `Zahtev je evidentiran. Trenutni status: ${statusLabel}.`;
+        el.upisStatus.textContent = state.editingRequestId
+          ? (reason || `Izmene su sačuvane. Trenutni status: ${statusLabel}.`)
+          : (reason || `Zahtev je evidentiran. Trenutni status: ${statusLabel}.`);
       } else {
-        el.upisStatus.textContent = `Zahtev je poslat. Trenutni status: ${statusLabel}.`;
+        el.upisStatus.textContent = state.editingRequestId
+          ? `Izmene su sačuvane. Trenutni status: ${statusLabel}.`
+          : `Zahtev je poslat. Trenutni status: ${statusLabel}.`;
       }
       el.upisForm.reset();
+      resetRequestEditMode();
       populateVrticSelect();
-      await fetchMyRequests();
     } catch (err) { el.upisStatus.textContent = `Greska: ${err.message || "Neuspesno"}`; }
   });
 }
@@ -766,7 +833,7 @@ async function fetchRatingsSummary() {
 
 async function submitRating(payload) {
   const session = currentSession();
-  if (!session || !isUserRole(session.role)) throw new Error("Samo ulogovan korisnik moze da ocenjuje vrtice.");
+  if (!session || !isUserRole(session.role)) throw new Error("Samo ulogovan roditelj moze da ocenjuje vrtice.");
   const headers = authHeaders();
   if (!headers) throw new Error("Prvo se uloguj.");
   const res = await fetch(`${API_VRTICI}/ocene`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -875,7 +942,7 @@ function renderCompareResult() {
       <h3>Zakljucak poredenja</h3>
       <div class="muted">Vise slobodnih mesta: ${compareWinner(left, right, freePlaces(left), freePlaces(right), true)}</div>
       <div class="muted">Manja popunjenost: ${compareWinner(left, right, occupancyLeft, occupancyRight, false)}</div>
-      <div class="muted">Bolja ocena korisnika: ${compareWinner(left, right, leftRating.prosecna_ocena, rightRating.prosecna_ocena, true)}</div>
+      <div class="muted">Bolja ocena roditelja: ${compareWinner(left, right, leftRating.prosecna_ocena, rightRating.prosecna_ocena, true)}</div>
       <div class="muted">Veci kapacitet: ${compareWinner(left, right, left.max_kapacitet, right.max_kapacitet, true)}</div>
       <div class="muted">Predlog: ${winner}</div>
     </article>`;
@@ -936,7 +1003,7 @@ vrticCardHTML = function(v, idx, mode = "public") {
   const rating = ratingSummaryFor(v.id);
   let html = __originalVrticCardHTML(v, idx, mode);
   if (mode === "public") {
-    html += `<div class="muted rating-summary">Ocena korisnika: ${formatRatingSummary(rating)}</div>`;
+    html += `<div class="muted rating-summary">Ocena roditelja: ${formatRatingSummary(rating)}</div>`;
     html += `<div class="card-actions"><button class="btn ghost small" type="button" data-compare-add="${v.id}">Dodaj za poredenje</button></div>`;
     if (session && isUserRole(session.role)) {
       html += `<div class="rating-box"><label>Oceni vrtic<select data-rate-select="${v.id}"><option value="5">5 - Odlicno</option><option value="4">4 - Vrlo dobro</option><option value="3">3 - Dobro</option><option value="2">2 - Slabo</option><option value="1">1 - Lose</option></select></label><button class="btn secondary small" type="button" data-rate-submit="${v.id}">Sacuvaj ocenu</button></div>`;
@@ -1130,7 +1197,7 @@ renderAdminRequests = function() {
     const card = document.createElement("article");
     card.className = "card";
     const actions = buildAdminRequestActions(item);
-    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${requestStatusLabel(item.status)}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Korisnik: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div>${requestMetaHtml(item)}${actions}`;
+    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${requestStatusLabel(item.status)}</div><h3>${item.vrtic_naziv}</h3><div class="muted">Roditelj nalog: ${item.korisnik_email}</div><div class="muted">Ime roditelja: ${item.ime_roditelja}</div><div class="muted">Ime deteta: ${item.ime_deteta}</div><div class="muted">Broj godina: ${item.broj_godina}</div>${requestMetaHtml(item)}${actions}`;
     el.adminRequests.appendChild(card);
   });
   if (!state.adminPrijave.length) el.adminRequests.innerHTML = "<div class='card'>Nema zahteva za upis.</div>";
@@ -1270,4 +1337,507 @@ async function initKonkursFeature() {
 }
 
 initKonkursFeature();
+
+Object.assign(state, {
+  assignments: [],
+  educators: [],
+  parentEducatorOptions: [],
+  myMeetingsData: [],
+  myNotificationsData: [],
+  educatorChildrenData: [],
+  educatorMeetingsData: [],
+});
+
+function boolLabel(value) {
+  return value ? "Priloženo" : "Nedostaje";
+}
+
+function requestDocumentsHtml(item) {
+  return `<div class="muted">Potvrda o vakcinaciji: ${boolLabel(item.potvrda_vakcinacije)}</div>
+    <div class="muted">Izvod iz matične knjige rođenih: ${boolLabel(item.izvod_iz_maticne_knjige)}</div>`;
+}
+
+async function updateRequestDocumentsPayload(id, payload) {
+  const session = currentSession();
+  if (!session || !isUserRole(session.role)) throw new Error("Samo roditelj može da dopuni dokumentaciju.");
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/zahtevi-upisa/${id}/dokumenta`, {
+    method: "PUT",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+renderMyRequests = function() {
+  if (!el.myRequests) return;
+  el.myRequests.innerHTML = "";
+  state.mojePrijave.forEach((item) => {
+    const canEditRequest = String(item.status || "").toLowerCase() === "dopuna_dokumentacije";
+    const pdfButton = requestCanDownloadDecision(item)
+      ? `<button class="btn secondary small" type="button" data-request-pdf="${item.id}">${String(item.status || "").toLowerCase() === "odobren" ? "Preuzmi potvrdu" : "Preuzmi odbijenicu"}</button>`
+      : "";
+    const editButton = canEditRequest
+      ? `<button class="btn ghost small" type="button" data-request-edit="${item.id}">Izmeni zahtev</button>`
+      : "";
+    const actions = pdfButton || editButton ? `<div class="card-actions">${pdfButton}${editButton}</div>` : "";
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${requestStatusLabel(item.status)}</div>
+      <h3>${item.vrtic_naziv}</h3>
+      <div class="muted">Roditelj: ${item.ime_roditelja}</div>
+      <div class="muted">Dete: ${item.ime_deteta}</div>
+      <div class="muted">Broj godina: ${item.broj_godina}</div>
+      ${requestDocumentsHtml(item)}
+      ${requestMetaHtml(item)}
+      ${actions}`;
+    el.myRequests.appendChild(card);
+  });
+  if (!state.mojePrijave.length) el.myRequests.innerHTML = "<div class='card'>Još nema poslatih zahteva.</div>";
+};
+
+renderAdminRequests = function() {
+  if (!el.adminRequests) return;
+  el.adminRequests.innerHTML = "";
+  state.adminPrijave.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<div class="${requestStatusClass(item.status)}">${requestStatusLabel(item.status)}</div>
+      <h3>${item.vrtic_naziv}</h3>
+      <div class="muted">Roditelj nalog: ${item.korisnik_email}</div>
+      <div class="muted">Ime roditelja: ${item.ime_roditelja}</div>
+      <div class="muted">Ime deteta: ${item.ime_deteta}</div>
+      <div class="muted">Broj godina: ${item.broj_godina}</div>
+      ${requestDocumentsHtml(item)}
+      ${requestMetaHtml(item)}
+      ${buildAdminRequestActions(item)}`;
+    el.adminRequests.appendChild(card);
+  });
+  if (!state.adminPrijave.length) el.adminRequests.innerHTML = "<div class='card'>Nema zahteva za upis.</div>";
+};
+
+function bindMyRequestDocumentEvents() {
+  if (!el.myRequests || el.myRequests.dataset.boundDocs) return;
+  el.myRequests.dataset.boundDocs = "1";
+  el.myRequests.addEventListener("click", (e) => {
+    const button = e.target.closest("button[data-request-edit]");
+    if (!button) return;
+    const item = state.mojePrijave.find((entry) => entry.id === button.dataset.requestEdit);
+    if (!item) return;
+    setRequestEditMode(item);
+    if (el.upisStatus) el.upisStatus.textContent = "Izmeni podatke i ponovo pošalji zahtev.";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+
+function populateAssignmentVrticSelect() {
+  if (!el.assignmentVrticSelect) return;
+  el.assignmentVrticSelect.innerHTML = `<option value="">Izaberi vrtic</option>${state.vrtici
+    .map((v) => `<option value="${v.id}">${v.naziv} (${v.grad} - ${v.opstina})</option>`)
+    .join("")}`;
+}
+
+function populateEducatorSelect() {
+  if (!el.assignmentEducatorSelect) return;
+  el.assignmentEducatorSelect.innerHTML = `<option value="">Izaberi vaspitaca</option>${state.educators
+    .map((item) => `<option value="${item.email}">${item.email}</option>`)
+    .join("")}`;
+}
+
+function renderAssignments() {
+  if (!el.assignmentCards) return;
+  el.assignmentCards.innerHTML = "";
+  state.assignments.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<h3>${item.vrtic_naziv}</h3>
+      <div class="muted">Vaspitač: ${item.vaspitac_email}</div>
+      <div class="muted">Dodeljeno: ${formatDateTimeLocal(item.created_at)}</div>
+      <div class="card-actions"><button class="btn danger small" type="button" data-assignment-delete="${item.id}">Ukloni raspored</button></div>`;
+    el.assignmentCards.appendChild(card);
+  });
+  if (!state.assignments.length) el.assignmentCards.innerHTML = "<div class='card'>Još nema raspoređenih vaspitača.</div>";
+}
+
+async function fetchEducators() {
+  if (!el.assignmentEducatorSelect) return;
+  const headers = authHeaders();
+  if (!headers) {
+    state.educators = [];
+    populateEducatorSelect();
+    return;
+  }
+  try {
+    const res = await fetch(`${API_AUTH}/auth/users?role=vaspitac`, { headers });
+    if (!res.ok) throw new Error(await res.text());
+    state.educators = await res.json();
+    populateEducatorSelect();
+  } catch (_err) {
+    state.educators = [];
+    populateEducatorSelect();
+  }
+}
+
+async function fetchAssignments() {
+  if (!el.assignmentCards) return;
+  const headers = authHeaders();
+  if (!headers) return;
+  try {
+    const res = await fetch(`${API_VRTICI}/rasporedi-vaspitaca`, { headers });
+    if (!res.ok) throw new Error(await res.text());
+    state.assignments = await res.json();
+    renderAssignments();
+  } catch (err) {
+    el.assignmentCards.innerHTML = `<div class='card'>${err.message || "Ne mogu da učitam rasporede."}</div>`;
+  }
+}
+
+async function createAssignmentRequest(payload) {
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/rasporedi-vaspitaca`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function deleteAssignmentRequest(id) {
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/rasporedi-vaspitaca/${id}`, { method: "DELETE", headers });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+function bindAssignmentEvents() {
+  if (el.assignmentForm && !el.assignmentForm.dataset.bound) {
+    el.assignmentForm.dataset.bound = "1";
+    el.assignmentForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(el.assignmentForm);
+      const payload = {
+        vrtic_id: String(formData.get("vrtic_id") || "").trim(),
+        vaspitac_email: String(formData.get("vaspitac_email") || "").trim(),
+      };
+      if (el.assignmentStatus) el.assignmentStatus.textContent = "Čuvam raspored...";
+      try {
+        await createAssignmentRequest(payload);
+        if (el.assignmentStatus) el.assignmentStatus.textContent = "Raspored vaspitača je sačuvan.";
+        el.assignmentForm.reset();
+        await fetchAssignments();
+      } catch (err) {
+        if (el.assignmentStatus) el.assignmentStatus.textContent = `Greška: ${err.message || "Neuspešno"}`;
+      }
+    });
+  }
+
+  if (el.assignmentCards && !el.assignmentCards.dataset.bound) {
+    el.assignmentCards.dataset.bound = "1";
+    el.assignmentCards.addEventListener("click", async (e) => {
+      const button = e.target.closest("button[data-assignment-delete]");
+      if (!button) return;
+      if (!window.confirm("Ukloni ovaj raspored vaspitača?")) return;
+      try {
+        await deleteAssignmentRequest(button.dataset.assignmentDelete);
+        if (el.assignmentStatus) el.assignmentStatus.textContent = "Raspored je uklonjen.";
+        await fetchAssignments();
+      } catch (err) {
+        if (el.assignmentStatus) el.assignmentStatus.textContent = `Greška: ${err.message || "Neuspešno"}`;
+      }
+    });
+  }
+}
+
+function populateMeetingRequestOptions() {
+  if (!el.sastanakZahtevSelect) return;
+  el.sastanakZahtevSelect.innerHTML = `<option value="">Izaberi dete</option>${state.parentEducatorOptions
+    .map((item) => `<option value="${item.zahtev_id}">${item.ime_deteta} — ${item.vrtic_naziv}</option>`)
+    .join("")}`;
+  syncMeetingEducatorOptions();
+}
+
+function syncMeetingEducatorOptions() {
+  if (!el.sastanakEducatorSelect || !el.sastanakZahtevSelect) return;
+  const selected = state.parentEducatorOptions.find((item) => String(item.zahtev_id) === String(el.sastanakZahtevSelect.value));
+  const educators = selected?.vaspitaci || [];
+  el.sastanakEducatorSelect.innerHTML = `<option value="">Izaberi vaspitača</option>${educators
+    .map((email) => `<option value="${email}">${email}</option>`)
+    .join("")}`;
+}
+
+function renderParentEducatorOptions() {
+  if (!el.roditeljOptions) return;
+  el.roditeljOptions.innerHTML = "";
+  state.parentEducatorOptions.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<h3>${item.ime_deteta}</h3>
+      <div class="muted">Vrtić: ${item.vrtic_naziv}</div>
+      <div class="muted">Vaspitači: ${item.vaspitaci.join(", ")}</div>`;
+    el.roditeljOptions.appendChild(card);
+  });
+  if (!state.parentEducatorOptions.length) el.roditeljOptions.innerHTML = "<div class='card'>Još nema dodeljenih vaspitača za odobrene upise.</div>";
+}
+
+function renderMyMeetingsList() {
+  if (!el.myMeetings) return;
+  el.myMeetings.innerHTML = "";
+  state.myMeetingsData.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<div class="status-chip info">${item.status || "zakazan"}</div>
+      <h3>${item.ime_deteta}</h3>
+      <div class="muted">Vrtić: ${item.vrtic_naziv}</div>
+      <div class="muted">Vaspitač: ${item.vaspitac_email}</div>
+      <div class="muted">Termin: ${formatDateTimeLocal(item.termin)}</div>
+      ${item.napomena ? `<div class="muted">Napomena: ${item.napomena}</div>` : ""}`;
+    el.myMeetings.appendChild(card);
+  });
+  if (!state.myMeetingsData.length) el.myMeetings.innerHTML = "<div class='card'>Još nema zakazanih sastanaka.</div>";
+}
+
+function renderMyNotificationsList() {
+  if (!el.myNotifications) return;
+  el.myNotifications.innerHTML = "";
+  state.myNotificationsData.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<div class="status-chip warn">Obaveštenje</div>
+      <h3>${item.ime_deteta}</h3>
+      <div class="muted">Vrtić: ${item.vrtic_naziv}</div>
+      <div class="muted">Vaspitač: ${item.vaspitac_email}</div>
+      <div class="muted">Poslato: ${formatDateTimeLocal(item.created_at)}</div>
+      <div class="muted">Poruka: ${item.poruka}</div>`;
+    el.myNotifications.appendChild(card);
+  });
+  if (!state.myNotificationsData.length) el.myNotifications.innerHTML = "<div class='card'>Još nema obaveštenja od vaspitača.</div>";
+}
+
+async function fetchParentEducatorOptions() {
+  if (!el.roditeljOptions && !el.sastanakZahtevSelect) return;
+  const headers = authHeaders();
+  if (!headers) return;
+  try {
+    const res = await fetch(`${API_VRTICI}/roditelj/vaspitaci`, { headers });
+    if (!res.ok) throw new Error(await res.text());
+    state.parentEducatorOptions = await res.json();
+    renderParentEducatorOptions();
+    populateMeetingRequestOptions();
+  } catch (err) {
+    if (el.roditeljOptions) el.roditeljOptions.innerHTML = `<div class='card'>${err.message || "Ne mogu da učitam vaspitače."}</div>`;
+  }
+}
+
+async function createMeetingRequest(payload) {
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/sastanci`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function fetchMyMeetingsList() {
+  if (!el.myMeetings) return;
+  const headers = authHeaders();
+  if (!headers) return;
+  try {
+    const res = await fetch(`${API_VRTICI}/sastanci/moji`, { headers });
+    if (!res.ok) throw new Error(await res.text());
+    state.myMeetingsData = await res.json();
+    renderMyMeetingsList();
+  } catch (err) {
+    el.myMeetings.innerHTML = `<div class='card'>${err.message || "Ne mogu da učitam sastanke."}</div>`;
+  }
+}
+
+async function fetchMyNotificationsList() {
+  if (!el.myNotifications) return;
+  const headers = authHeaders();
+  if (!headers) return;
+  try {
+    const res = await fetch(`${API_VRTICI}/obavestenja/moja`, { headers });
+    if (!res.ok) throw new Error(await res.text());
+    state.myNotificationsData = await res.json();
+    renderMyNotificationsList();
+  } catch (err) {
+    el.myNotifications.innerHTML = `<div class='card'>${err.message || "Ne mogu da učitam obaveštenja."}</div>`;
+  }
+}
+
+function bindMeetingEvents() {
+  if (el.sastanakZahtevSelect && !el.sastanakZahtevSelect.dataset.bound) {
+    el.sastanakZahtevSelect.dataset.bound = "1";
+    el.sastanakZahtevSelect.addEventListener("change", syncMeetingEducatorOptions);
+  }
+  if (el.sastanakForm && !el.sastanakForm.dataset.bound) {
+    el.sastanakForm.dataset.bound = "1";
+    el.sastanakForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(el.sastanakForm);
+      const payload = {
+        zahtev_id: String(formData.get("zahtev_id") || "").trim(),
+        vaspitac_email: String(formData.get("vaspitac_email") || "").trim(),
+        termin: String(formData.get("termin") || "").trim(),
+        napomena: String(formData.get("napomena") || "").trim(),
+      };
+      if (el.sastanakStatus) el.sastanakStatus.textContent = "Zakazujem sastanak...";
+      try {
+        await createMeetingRequest(payload);
+        if (el.sastanakStatus) el.sastanakStatus.textContent = "Sastanak je uspešno zakazan.";
+        el.sastanakForm.reset();
+        syncMeetingEducatorOptions();
+        await fetchMyMeetingsList();
+      } catch (err) {
+        if (el.sastanakStatus) el.sastanakStatus.textContent = `Greška: ${err.message || "Neuspešno"}`;
+      }
+    });
+  }
+}
+
+function populateEducatorChildSelect() {
+  if (!el.educatorChildSelect) return;
+  el.educatorChildSelect.innerHTML = `<option value="">Izaberi dete</option>${state.educatorChildrenData
+    .map((item) => `<option value="${item.id}">${item.ime_deteta} — ${item.vrtic_naziv}</option>`)
+    .join("")}`;
+}
+
+function renderEducatorChildrenCards() {
+  if (!el.educatorChildren) return;
+  el.educatorChildren.innerHTML = "";
+  state.educatorChildrenData.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<h3>${item.ime_deteta}</h3>
+      <div class="muted">Roditelj: ${item.ime_roditelja}</div>
+      <div class="muted">Roditelj nalog: ${item.korisnik_email}</div>
+      <div class="muted">Vrtić: ${item.vrtic_naziv}</div>`;
+    el.educatorChildren.appendChild(card);
+  });
+  if (!state.educatorChildrenData.length) el.educatorChildren.innerHTML = "<div class='card'>Nema odobrenih upisa u tvojim vrtićima.</div>";
+}
+
+function renderEducatorMeetingsCards() {
+  if (!el.educatorMeetings) return;
+  el.educatorMeetings.innerHTML = "";
+  state.educatorMeetingsData.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<div class="status-chip info">${item.status || "zakazan"}</div>
+      <h3>${item.ime_deteta}</h3>
+      <div class="muted">Roditelj: ${item.roditelj_email}</div>
+      <div class="muted">Vrtić: ${item.vrtic_naziv}</div>
+      <div class="muted">Termin: ${formatDateTimeLocal(item.termin)}</div>
+      ${item.napomena ? `<div class="muted">Napomena roditelja: ${item.napomena}</div>` : ""}`;
+    el.educatorMeetings.appendChild(card);
+  });
+  if (!state.educatorMeetingsData.length) el.educatorMeetings.innerHTML = "<div class='card'>Još nema zakazanih sastanaka.</div>";
+}
+
+async function fetchEducatorChildrenData() {
+  if (!el.educatorChildren && !el.educatorChildSelect) return;
+  const headers = authHeaders();
+  if (!headers) return;
+  try {
+    const res = await fetch(`${API_VRTICI}/vaspitac/deca`, { headers });
+    if (!res.ok) throw new Error(await res.text());
+    state.educatorChildrenData = await res.json();
+    renderEducatorChildrenCards();
+    populateEducatorChildSelect();
+  } catch (err) {
+    if (el.educatorChildren) el.educatorChildren.innerHTML = `<div class='card'>${err.message || "Ne mogu da učitam podatke o deci."}</div>`;
+  }
+}
+
+async function fetchEducatorMeetingsData() {
+  if (!el.educatorMeetings) return;
+  const headers = authHeaders();
+  if (!headers) return;
+  try {
+    const res = await fetch(`${API_VRTICI}/vaspitac/sastanci`, { headers });
+    if (!res.ok) throw new Error(await res.text());
+    state.educatorMeetingsData = await res.json();
+    renderEducatorMeetingsCards();
+  } catch (err) {
+    el.educatorMeetings.innerHTML = `<div class='card'>${err.message || "Ne mogu da učitam sastanke."}</div>`;
+  }
+}
+
+async function createEducatorNoticeRequest(payload) {
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/vaspitac/obavestenja`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function bindEducatorEvents() {
+  if (el.educatorNoticeForm && !el.educatorNoticeForm.dataset.bound) {
+    el.educatorNoticeForm.dataset.bound = "1";
+    el.educatorNoticeForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(el.educatorNoticeForm);
+      const payload = {
+        zahtev_id: String(formData.get("zahtev_id") || "").trim(),
+        poruka: String(formData.get("poruka") || "").trim(),
+      };
+      if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = "Šaljem obaveštenje...";
+      try {
+        await createEducatorNoticeRequest(payload);
+        if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = "Obaveštenje je poslato roditelju.";
+        el.educatorNoticeForm.reset();
+      } catch (err) {
+        if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = `Greška: ${err.message || "Neuspešno"}`;
+      }
+    });
+  }
+}
+
+const __renderAllWithAssignmentsAndMeetings = renderAll;
+renderAll = function() {
+  __renderAllWithAssignmentsAndMeetings();
+  populateAssignmentVrticSelect();
+  populateEducatorSelect();
+  renderAssignments();
+  renderParentEducatorOptions();
+  populateMeetingRequestOptions();
+  renderMyMeetingsList();
+  renderMyNotificationsList();
+  renderEducatorChildrenCards();
+  populateEducatorChildSelect();
+  renderEducatorMeetingsCards();
+};
+
+async function initExtendedEnrollmentFeatures() {
+  bindMyRequestDocumentEvents();
+  bindAssignmentEvents();
+  bindMeetingEvents();
+  bindEducatorEvents();
+
+  if (el.assignmentForm || el.assignmentCards) {
+    await fetchEducators();
+    await fetchAssignments();
+  }
+  if (el.roditeljOptions || el.sastanakForm || el.myMeetings || el.myNotifications) {
+    await fetchParentEducatorOptions();
+    await fetchMyMeetingsList();
+    await fetchMyNotificationsList();
+  }
+  if (el.educatorChildren || el.educatorMeetings || el.educatorNoticeForm) {
+    await fetchEducatorChildrenData();
+    await fetchEducatorMeetingsData();
+  }
+}
+
+initExtendedEnrollmentFeatures();
 

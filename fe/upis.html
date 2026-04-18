@@ -34,8 +34,8 @@
       </section>
       <section class="form-section">
         <div class="form-card login-card">
-          <h2>Posalji zahtev za upis</h2>
-          <p>Korisnik bira vrtic i salje zahtev adminu na odobravanje.</p>
+          <h2 id="upis-form-title">Posalji zahtev za upis</h2>
+          <p>Roditelj bira vrtic i salje zahtev adminu na odobravanje.</p>
           <form id="upis-form" novalidate>
             <div class="grid">
               <label>
@@ -55,8 +55,19 @@
                 <input name="broj_godina" type="number" min="1" max="7" required />
               </label>
             </div>
+            <div class="grid">
+              <label class="checkbox-row">
+                <input name="potvrda_vakcinacije" type="checkbox" required />
+                <span>Potvrda o vakcinaciji je priložena</span>
+              </label>
+              <label class="checkbox-row">
+                <input name="izvod_iz_maticne_knjige" type="checkbox" required />
+                <span>Izvod iz matične knjige rođenih je priložen</span>
+              </label>
+            </div>
             <div class="form-actions">
-              <button class="btn primary" type="submit">Posalji zahtev</button>
+              <button id="upis-submit-btn" class="btn primary" type="submit">Posalji zahtev</button>
+              <button id="upis-cancel-edit" class="btn ghost" type="button" hidden>Odustani od izmene</button>
               <span id="upis-status" class="muted"></span>
             </div>
           </form>
@@ -71,6 +82,63 @@
           </div>
         </div>
         <div id="my-requests-list" class="cards"></div>
+      </section>
+
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Moj vaspitač i termin sastanka</h2>
+            <p>Roditelj može da zakazuje sastanak samo sa vaspitačem koji je raspoređen u vrtić deteta.</p>
+          </div>
+        </div>
+        <div id="parent-educator-options" class="cards"></div>
+        <div class="form-card login-card">
+          <h3>Zakazivanje sastanka</h3>
+          <form id="sastanak-form" novalidate>
+            <div class="grid">
+              <label>
+                Dete / zahtev
+                <select id="sastanak-zahtev-id" name="zahtev_id" required></select>
+              </label>
+              <label>
+                Vaspitac
+                <select id="sastanak-vaspitac-email" name="vaspitac_email" required></select>
+              </label>
+              <label>
+                Termin
+                <input name="termin" type="datetime-local" required />
+              </label>
+              <label>
+                Napomena
+                <input name="napomena" placeholder="Tema sastanka" />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn secondary" type="submit">Zakazi sastanak</button>
+              <span id="sastanak-status" class="muted"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Moji sastanci</h2>
+            <p>Pregled zakazanih termina sa vaspitačima.</p>
+          </div>
+        </div>
+        <div id="my-meetings-list" class="cards"></div>
+      </section>
+
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Obaveštenja vaspitača</h2>
+            <p>Poruke o simptomima i drugim zapažanjima za dete.</p>
+          </div>
+        </div>
+        <div id="my-notifications-list" class="cards"></div>
       </section>
     </main>
 
