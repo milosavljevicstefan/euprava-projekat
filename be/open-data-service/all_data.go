@@ -26,11 +26,25 @@ type ExternalKonkurs struct {
 	SlobodnaMesta  int       `json:"slobodna_mesta"`
 }
 
+type ExternalRatingSummary struct {
+	VrticID       string  `json:"vrtic_id"`
+	ProsecnaOcena float64 `json:"prosecna_ocena"`
+	BrojOcena     int     `json:"broj_ocena"`
+}
+
+type ExternalVaspitac struct {
+	VaspitacEmail string `json:"vaspitac_email"`
+	VrticID       string `json:"vrtic_id"`
+	VrticNaziv    string `json:"vrtic_naziv"`
+}
+
 type AllDataResponse struct {
-	GeneratedAt time.Time         `json:"generated_at"`
-	Vrtici      []ExternalVrtic   `json:"vrtici"`
-	Zahtevi     []ExternalZahtev  `json:"zahtevi"`
-	Konkursi    []ExternalKonkurs `json:"konkursi"`
+	GeneratedAt time.Time               `json:"generated_at"`
+	Vrtici      []ExternalVrtic         `json:"vrtici"`
+	Zahtevi     []ExternalZahtev        `json:"zahtevi"`
+	Konkursi    []ExternalKonkurs       `json:"konkursi"`
+	Ocene       []ExternalRatingSummary `json:"ocene"`
+	Vaspitaci   []ExternalVaspitac      `json:"vaspitaci"`
 }
 
 func fetchOpenDataRequests() ([]ExternalZahtev, error) {
@@ -69,6 +83,42 @@ func fetchAllKonkursi() ([]ExternalKonkurs, error) {
 	return items, nil
 }
 
+func fetchRatingsSummary() ([]ExternalRatingSummary, error) {
+	resp, err := http.Get(preschoolBaseURL + "/ocene")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("preschool-service ocene status: %d", resp.StatusCode)
+	}
+
+	var items []ExternalRatingSummary
+	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func fetchOpenDataEducators() ([]ExternalVaspitac, error) {
+	resp, err := http.Get(preschoolBaseURL + "/otvoreni-podaci/vaspitaci")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("preschool-service vaspitaci status: %d", resp.StatusCode)
+	}
+
+	var items []ExternalVaspitac
+	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 func allDataHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -93,12 +143,26 @@ func allDataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ocene, err := fetchRatingsSummary()
+	if err != nil {
+		http.Error(w, "Greska pri citanju ocena", http.StatusInternalServerError)
+		return
+	}
+
+	vaspitaci, err := fetchOpenDataEducators()
+	if err != nil {
+		http.Error(w, "Greska pri citanju vaspitaca", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(AllDataResponse{
 		GeneratedAt: time.Now(),
 		Vrtici:      vrtici,
 		Zahtevi:     zahtevi,
 		Konkursi:    konkursi,
+		Ocene:       ocene,
+		Vaspitaci:   vaspitaci,
 	})
 }
 
