@@ -140,6 +140,9 @@ type Sastanak struct {
 	Napomena      string             `json:"napomena,omitempty" bson:"napomena,omitempty"`
 	Status        string             `json:"status" bson:"status"`
 	CreatedAt     time.Time          `json:"created_at" bson:"created_at"`
+	ProcessedAt   *time.Time         `json:"processed_at,omitempty" bson:"processed_at,omitempty"`
+	ProcessedBy   string             `json:"processed_by,omitempty" bson:"processed_by,omitempty"`
+	Reason        string             `json:"reason,omitempty" bson:"reason,omitempty"`
 }
 
 type SastanakRequest struct {
@@ -147,6 +150,10 @@ type SastanakRequest struct {
 	VaspitacEmail string `json:"vaspitac_email"`
 	Termin        string `json:"termin"`
 	Napomena      string `json:"napomena"`
+}
+
+type SastanakActionPayload struct {
+	Reason string `json:"reason"`
 }
 
 type SimptomObavestenje struct {
@@ -173,6 +180,10 @@ const (
 	statusApproved    = "odobren"
 	statusRejected    = "odbijen"
 	statusWaitingList = "na_listi_cekanja"
+
+	meetingStatusPending  = "na_cekanju"
+	meetingStatusAccepted = "prihvacen"
+	meetingStatusRejected = "odbijen"
 )
 
 var activeRequestStatuses = []string{statusSubmitted, statusInReview, statusNeedDocs, statusWaitingList, statusApproved}
@@ -198,6 +209,19 @@ func canonicalRequestStatus(status string) string {
 		return statusRejected
 	case statusWaitingList:
 		return statusWaitingList
+	default:
+		return strings.ToLower(strings.TrimSpace(status))
+	}
+}
+
+func canonicalMeetingStatus(status string) string {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "", meetingStatusPending:
+		return meetingStatusPending
+	case "zakazan", meetingStatusAccepted:
+		return meetingStatusAccepted
+	case meetingStatusRejected:
+		return meetingStatusRejected
 	default:
 		return strings.ToLower(strings.TrimSpace(status))
 	}

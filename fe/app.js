@@ -1066,6 +1066,46 @@ function requestCanDownloadDecision(item) {
   return status === "odobren" || status === "odbijen";
 }
 
+function meetingStatusLabel(status) {
+  switch (String(status || "").toLowerCase()) {
+    case "na_cekanju":
+      return "Na cekanju";
+    case "zakazan":
+    case "prihvacen":
+      return "Prihvacen";
+    case "odbijen":
+      return "Odbijen";
+    default:
+      return status || "Nepoznato";
+  }
+}
+
+function meetingStatusClass(status) {
+  switch (String(status || "").toLowerCase()) {
+    case "zakazan":
+    case "prihvacen":
+      return "status-chip ok";
+    case "odbijen":
+      return "status-chip danger";
+    case "na_cekanju":
+      return "status-chip info";
+    default:
+      return "status-chip";
+  }
+}
+
+function meetingMetaHtml(item) {
+  const details = [];
+  if (item.processed_by) details.push(`<div class="muted">Obradio vaspitac: ${item.processed_by}</div>`);
+  if (item.processed_at) details.push(`<div class="muted">Datum odluke: ${formatDateTimeLocal(item.processed_at)}</div>`);
+  if (item.reason) details.push(`<div class="muted">Napomena: ${item.reason}</div>`);
+  return details.join("");
+}
+
+function canEducatorProcessMeeting(item) {
+  return String(item?.status || "").toLowerCase() === "na_cekanju";
+}
+
 function requestMetaHtml(item) {
   const details = [
     `<div class="muted">Poslato: ${formatDateTimeLocal(item.created_at)}</div>`,
@@ -1588,15 +1628,16 @@ function renderMyMeetingsList() {
   state.myMeetingsData.forEach((item) => {
     const card = document.createElement("article");
     card.className = "card";
-    card.innerHTML = `<div class="status-chip info">${item.status || "zakazan"}</div>
+    card.innerHTML = `<div class="${meetingStatusClass(item.status)}">${meetingStatusLabel(item.status)}</div>
       <h3>${item.ime_deteta}</h3>
-      <div class="muted">Vrtić: ${item.vrtic_naziv}</div>
-      <div class="muted">Vaspitač: ${item.vaspitac_email}</div>
+      <div class="muted">Vrtic: ${item.vrtic_naziv}</div>
+      <div class="muted">Vaspitac: ${item.vaspitac_email}</div>
       <div class="muted">Termin: ${formatDateTimeLocal(item.termin)}</div>
-      ${item.napomena ? `<div class="muted">Napomena: ${item.napomena}</div>` : ""}`;
+      ${item.napomena ? `<div class="muted">Napomena roditelja: ${item.napomena}</div>` : ""}
+      ${meetingMetaHtml(item)}`;
     el.myMeetings.appendChild(card);
   });
-  if (!state.myMeetingsData.length) el.myMeetings.innerHTML = "<div class='card'>Još nema zakazanih sastanaka.</div>";
+  if (!state.myMeetingsData.length) el.myMeetings.innerHTML = "<div class='card'>Jos nema poslatih zahteva za sastanak.</div>";
 }
 
 function renderMyNotificationsList() {
@@ -1643,6 +1684,17 @@ async function createMeetingRequest(payload) {
   return res.json();
 }
 
+async function updateMeetingDecisionRequest(id, action, reason = "") {
+  const headers = authHeaders();
+  if (!headers) throw new Error("Prvo se uloguj.");
+  const res = await fetch(`${API_VRTICI}/vaspitac/sastanci/${id}/${action}`, {
+    method: "PUT",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
 async function fetchMyMeetingsList() {
   if (!el.myMeetings) return;
   const headers = authHeaders();
@@ -1687,15 +1739,15 @@ function bindMeetingEvents() {
         termin: String(formData.get("termin") || "").trim(),
         napomena: String(formData.get("napomena") || "").trim(),
       };
-      if (el.sastanakStatus) el.sastanakStatus.textContent = "Zakazujem sastanak...";
+      if (el.sastanakStatus) el.sastanakStatus.textContent = "Saljem zahtev za sastanak...";
       try {
         await createMeetingRequest(payload);
-        if (el.sastanakStatus) el.sastanakStatus.textContent = "Sastanak je uspešno zakazan.";
+        if (el.sastanakStatus) el.sastanakStatus.textContent = "Zahtev za sastanak je poslat vaspitacu na potvrdu.";
         el.sastanakForm.reset();
         syncMeetingEducatorOptions();
         await fetchMyMeetingsList();
       } catch (err) {
-        if (el.sastanakStatus) el.sastanakStatus.textContent = `Greška: ${err.message || "Neuspešno"}`;
+        if (el.sastanakStatus) el.sastanakStatus.textContent = `Greska: ${err.message || "Neuspesno"}`;
       }
     });
   }
@@ -1727,17 +1779,22 @@ function renderEducatorMeetingsCards() {
   if (!el.educatorMeetings) return;
   el.educatorMeetings.innerHTML = "";
   state.educatorMeetingsData.forEach((item) => {
+    const actions = canEducatorProcessMeeting(item)
+      ? `<div class="card-actions"><button class="btn secondary small" type="button" data-meeting-action="prihvati" data-meeting-id="${item.id}">Prihvati</button><button class="btn danger small" type="button" data-meeting-action="odbij" data-meeting-id="${item.id}">Odbij</button></div>`
+      : "";
     const card = document.createElement("article");
     card.className = "card";
-    card.innerHTML = `<div class="status-chip info">${item.status || "zakazan"}</div>
+    card.innerHTML = `<div class="${meetingStatusClass(item.status)}">${meetingStatusLabel(item.status)}</div>
       <h3>${item.ime_deteta}</h3>
       <div class="muted">Roditelj: ${item.roditelj_email}</div>
-      <div class="muted">Vrtić: ${item.vrtic_naziv}</div>
+      <div class="muted">Vrtic: ${item.vrtic_naziv}</div>
       <div class="muted">Termin: ${formatDateTimeLocal(item.termin)}</div>
-      ${item.napomena ? `<div class="muted">Napomena roditelja: ${item.napomena}</div>` : ""}`;
+      ${item.napomena ? `<div class="muted">Napomena roditelja: ${item.napomena}</div>` : ""}
+      ${meetingMetaHtml(item)}
+      ${actions}`;
     el.educatorMeetings.appendChild(card);
   });
-  if (!state.educatorMeetingsData.length) el.educatorMeetings.innerHTML = "<div class='card'>Još nema zakazanih sastanaka.</div>";
+  if (!state.educatorMeetingsData.length) el.educatorMeetings.innerHTML = "<div class='card'>Jos nema zahteva za sastanak.</div>";
 }
 
 async function fetchEducatorChildrenData() {
@@ -1791,13 +1848,43 @@ function bindEducatorEvents() {
         zahtev_id: String(formData.get("zahtev_id") || "").trim(),
         poruka: String(formData.get("poruka") || "").trim(),
       };
-      if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = "Šaljem obaveštenje...";
+      if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = "Saljem obavestenje...";
       try {
         await createEducatorNoticeRequest(payload);
-        if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = "Obaveštenje je poslato roditelju.";
+        if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = "Obavestenje je poslato roditelju.";
         el.educatorNoticeForm.reset();
       } catch (err) {
-        if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = `Greška: ${err.message || "Neuspešno"}`;
+        if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = `Greska: ${err.message || "Neuspesno"}`;
+      }
+    });
+  }
+
+  if (el.educatorMeetings && !el.educatorMeetings.dataset.boundActions) {
+    el.educatorMeetings.dataset.boundActions = "1";
+    el.educatorMeetings.addEventListener("click", async (e) => {
+      const button = e.target.closest("button[data-meeting-action]");
+      if (!button) return;
+      const action = String(button.dataset.meetingAction || "").trim();
+      const id = String(button.dataset.meetingId || "").trim();
+      let reason = "";
+      if (action === "odbij") {
+        reason = window.prompt("Unesi razlog odbijanja sastanka:", "") || "";
+        if (!reason.trim()) {
+          if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = "Odbijanje sastanka zahteva razlog.";
+          return;
+        }
+      }
+      if (el.educatorNoticeStatus) {
+        el.educatorNoticeStatus.textContent = action === "prihvati" ? "Potvrdjujem sastanak..." : "Odbijam sastanak...";
+      }
+      try {
+        await updateMeetingDecisionRequest(id, action, reason.trim());
+        if (el.educatorNoticeStatus) {
+          el.educatorNoticeStatus.textContent = action === "prihvati" ? "Sastanak je prihvacen." : "Sastanak je odbijen.";
+        }
+        await fetchEducatorMeetingsData();
+      } catch (err) {
+        if (el.educatorNoticeStatus) el.educatorNoticeStatus.textContent = `Greska: ${err.message || "Neuspesno"}`;
       }
     });
   }

@@ -426,16 +426,16 @@ func updateEnrollmentRequest(ctx context.Context, claims jwt.MapClaims, id primi
 
 	update := bson.M{
 		"$set": bson.M{
-			"vrtic_id":                  vrticID,
-			"konkurs_id":                konkurs.ID,
-			"vrtic_naziv":               vrtic.Naziv,
-			"ime_roditelja":             strings.TrimSpace(req.ImeRoditelja),
-			"ime_deteta":                strings.TrimSpace(req.ImeDeteta),
-			"broj_godina":               req.BrojGodina,
-			"potvrda_vakcinacije":       req.PotvrdaVakcinacije,
-			"izvod_iz_maticne_knjige":   req.IzvodIzMaticneKnjige,
-			"status":                    status,
-			"reason":                    reason,
+			"vrtic_id":                vrticID,
+			"konkurs_id":              konkurs.ID,
+			"vrtic_naziv":             vrtic.Naziv,
+			"ime_roditelja":           strings.TrimSpace(req.ImeRoditelja),
+			"ime_deteta":              strings.TrimSpace(req.ImeDeteta),
+			"broj_godina":             req.BrojGodina,
+			"potvrda_vakcinacije":     req.PotvrdaVakcinacije,
+			"izvod_iz_maticne_knjige": req.IzvodIzMaticneKnjige,
+			"status":                  status,
+			"reason":                  reason,
 		},
 		"$unset": bson.M{
 			"processed_at": "",
@@ -660,7 +660,7 @@ func createMeeting(ctx context.Context, claims jwt.MapClaims, req SastanakReques
 		VaspitacEmail: educatorEmail,
 		Termin:        termin,
 		Napomena:      strings.TrimSpace(req.Napomena),
-		Status:        "zakazan",
+		Status:        meetingStatusPending,
 		CreatedAt:     time.Now(),
 	}
 	res, err := sastanciCollection.InsertOne(ctx, meeting)
@@ -670,7 +670,60 @@ func createMeeting(ctx context.Context, claims jwt.MapClaims, req SastanakReques
 	if id, ok := res.InsertedID.(primitive.ObjectID); ok {
 		meeting.ID = id
 	}
+	meeting.Status = canonicalMeetingStatus(meeting.Status)
 	return &meeting, nil
+}
+
+func getMeetingByID(ctx context.Context, id primitive.ObjectID) (Sastanak, error) {
+	var item Sastanak
+	err := sastanciCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&item)
+	if err == nil {
+		item.Status = canonicalMeetingStatus(item.Status)
+	}
+	return item, err
+}
+
+func processMeetingDecision(ctx context.Context, claims jwt.MapClaims, id primitive.ObjectID, action string, reason string) error {
+	item, err := getMeetingByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	educatorEmail := strings.ToLower(strings.TrimSpace(claimString(claims, "sub")))
+	if educatorEmail == "" || educatorEmail != strings.ToLower(strings.TrimSpace(item.VaspitacEmail)) {
+		return errors.New("Nemate dozvolu da obradite ovaj sastanak")
+	}
+	if canonicalMeetingStatus(item.Status) != meetingStatusPending {
+		return errors.New("Sastanak je vec obradjen")
+	}
+
+	reason = strings.TrimSpace(reason)
+	status := ""
+	switch action {
+	case "prihvati":
+		status = meetingStatusAccepted
+	case "odbij":
+		if reason == "" {
+			return errors.New("Unesite razlog odbijanja sastanka")
+		}
+		status = meetingStatusRejected
+	default:
+		return errors.New("Nepoznata akcija")
+	}
+
+	now := time.Now()
+	setFields := bson.M{
+		"status":       status,
+		"processed_at": now,
+		"processed_by": educatorEmail,
+	}
+	update := bson.M{"$set": setFields}
+	if reason != "" {
+		setFields["reason"] = reason
+	} else {
+		update["$unset"] = bson.M{"reason": ""}
+	}
+	_, err = sastanciCollection.UpdateOne(ctx, bson.M{"_id": id}, update)
+	return err
 }
 
 func getMeetingsByParent(ctx context.Context, email string) ([]Sastanak, error) {
@@ -685,6 +738,7 @@ func getMeetingsByParent(ctx context.Context, email string) ([]Sastanak, error) 
 		if err := cursor.Decode(&item); err != nil {
 			return nil, err
 		}
+		item.Status = canonicalMeetingStatus(item.Status)
 		items = append(items, item)
 	}
 	return items, cursor.Err()
@@ -702,6 +756,7 @@ func getMeetingsByEducator(ctx context.Context, email string) ([]Sastanak, error
 		if err := cursor.Decode(&item); err != nil {
 			return nil, err
 		}
+		item.Status = canonicalMeetingStatus(item.Status)
 		items = append(items, item)
 	}
 	return items, cursor.Err()
