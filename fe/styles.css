@@ -492,6 +492,16 @@ main {
   color: #ff8a8a;
 }
 
+.status-chip.info {
+  background: rgba(140, 177, 255, 0.18);
+  color: #b7caff;
+}
+
+.status-chip.warn {
+  background: rgba(249, 168, 38, 0.22);
+  color: #ffd48a;
+}
+
 .compare-card {
   width: 100%;
 }
@@ -522,4 +532,24 @@ main {
 
 .rating-summary {
   font-weight: 600;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background: rgba(11, 17, 34, 0.76);
+}
+
+.checkbox-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.stack-list {
+  display: grid;
+  gap: 12px;
 }

@@ -53,6 +53,12 @@ type ProfileResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type UserListItem struct {
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 var usersCollection *mongo.Collection
 
 func main() {
@@ -84,13 +90,7 @@ func main() {
 			return
 		}
 
-		role, err := normalizeRole(req.Role)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		if err := registerUser(r.Context(), req.Email, req.Password, role); err != nil {
+		if err := registerUser(r.Context(), req.Email, req.Password, "roditelj"); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -174,6 +174,43 @@ func main() {
 		})
 	})
 
+	http.HandleFunc("/auth/users", func(w http.ResponseWriter, r *http.Request) {
+		enableCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		claims, err := requireAuth(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		role := strings.ToLower(strings.TrimSpace(claimString(claims, "role")))
+		if role != "admin" {
+			http.Error(w, "Samo admin moze da pregleda korisnike", http.StatusForbidden)
+			return
+		}
+
+		roleFilter := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("role")))
+		filter := bson.M{}
+		if roleFilter != "" {
+			filter["role"] = roleFilter
+		}
+		items, err := listUsers(r.Context(), filter)
+		if err != nil {
+			http.Error(w, "Greska pri citanju korisnika", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(items)
+	})
+
 	fmt.Println("Auth servis na 8083...")
 	http.ListenAndServe(":8083", nil)
 }
@@ -181,12 +218,14 @@ func main() {
 func normalizeRole(role string) (string, error) {
 	r := strings.ToLower(strings.TrimSpace(role))
 	switch r {
-	case "", "korisnik":
-		return "korisnik", nil
+	case "", "roditelj", "korisnik":
+		return "roditelj", nil
 	case "admin":
 		return "admin", nil
+	case "vaspitac":
+		return "vaspitac", nil
 	default:
-		return "", errors.New("Neispravna rola (korisnik, admin)")
+		return "", errors.New("Neispravna rola (roditelj, admin, vaspitac)")
 	}
 }
 
@@ -235,6 +274,28 @@ func getUserByEmail(ctx context.Context, email string) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func listUsers(ctx context.Context, filter bson.M) ([]UserListItem, error) {
+	cursor, err := usersCollection.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "email", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	items := make([]UserListItem, 0)
+	for cursor.Next(ctx) {
+		var user User
+		if err := cursor.Decode(&user); err != nil {
+			return nil, err
+		}
+		items = append(items, UserListItem{
+			Email:     user.Email,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt,
+		})
+	}
+	return items, cursor.Err()
 }
 
 func hashPassword(email, password string) string {
@@ -316,6 +377,10 @@ func ensureRoleMigration(ctx context.Context) {
 	if err != nil {
 		log.Printf("Users role migration warning: %v", err)
 	}
+	_, err = usersCollection.UpdateMany(ctx, bson.M{"role": "korisnik"}, bson.M{"$set": bson.M{"role": "roditelj"}})
+	if err != nil {
+		log.Printf("Users role migration warning: %v", err)
+	}
 }
 
 func ensureSeedUser(ctx context.Context) {
@@ -328,7 +393,8 @@ func ensureSeedUser(ctx context.Context) {
 		return
 	}
 	_ = registerUser(ctx, "student@euprava.local", "demo123", "admin")
-	_ = registerUser(ctx, "korisnik@euprava.local", "demo123", "korisnik")
+	_ = registerUser(ctx, "roditelj@euprava.local", "demo123", "roditelj")
+	_ = registerUser(ctx, "vaspitac@euprava.local", "demo123", "vaspitac")
 }
 
 func requireAuth(r *http.Request) (jwt.MapClaims, error) {

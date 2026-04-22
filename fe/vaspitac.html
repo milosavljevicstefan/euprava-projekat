@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | Vaspitač</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="vaspitac">
+    <div class="bg-noise"></div>
+    <header class="hero hero-compact" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links"></div>
+      </nav>
+      <div class="page-title-wrap">
+        <p class="eyebrow">Vaspitač servis</p>
+        <h1>Deca, sastanci i obaveštenja</h1>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Deca u mojim vrtićima</h2>
+            <p>Prikaz odobrenih upisa za vrtiće u kojima je vaspitač raspoređen.</p>
+          </div>
+        </div>
+        <div id="educator-children-list" class="cards"></div>
+      </section>
+
+      <section class="form-section">
+        <div class="form-card">
+          <h2>Pošalji obaveštenje roditelju</h2>
+          <p>Upiši simptome, problem ili kratku napomenu za roditelja deteta.</p>
+          <form id="educator-notice-form">
+            <div class="grid">
+              <label>
+                Dete / zahtev
+                <select id="educator-zahtev-id" name="zahtev_id" required></select>
+              </label>
+              <label>
+                Poruka roditelju
+                <input name="poruka" required placeholder="Na primer: dete ima simptome prehlade..." />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn primary" type="submit">Pošalji obaveštenje</button>
+              <span id="educator-notice-status" class="muted"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="vrtici">
+        <div class="section-head">
+          <div>
+            <h2>Zakazani sastanci</h2>
+            <p>Pregled termina koje su roditelji zakazali sa tobom.</p>
+          </div>
+        </div>
+        <div id="educator-meetings-list" class="cards"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
