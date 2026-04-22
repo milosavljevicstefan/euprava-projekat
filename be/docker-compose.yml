@@ -35,7 +35,7 @@ services:
     container_name: open-data-service
     environment:
       PORT: 8084
-      VRTICI_API_URL: http://localhost:8081
+      VRTICI_API_URL: http://preschool-app:8081
     depends_on:
       - preschool-app
 

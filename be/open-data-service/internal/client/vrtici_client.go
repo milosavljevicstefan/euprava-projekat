@@ -31,7 +31,7 @@ func NewVrticiClient(baseURL string) *VrticiClient {
 // FetchAllData poziva GET /api/export/all-data na eksternom servisu
 // i vraća deserijalizovane podatke ili grešku ako servis nije dostupan.
 func (c *VrticiClient) FetchAllData() (*model.ExportData, error) {
-	url := fmt.Sprintf("%s/api/export/all-data", c.baseURL)
+	url := fmt.Sprintf("%s/analytics/all-data", c.baseURL)
 	log.Printf("[CLIENT] Preuzimanje podataka sa: %s", url)
 
 	resp, err := c.httpClient.Get(url)

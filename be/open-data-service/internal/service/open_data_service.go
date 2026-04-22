@@ -20,6 +20,27 @@ type DatasetVersion struct {
 	Data      interface{} `json:"data"`      // Stvarni podaci
 }
 
+func MapVrtici(input []model.VrticDTO) []model.Vrtic {
+	result := make([]model.Vrtic, 0, len(input))
+
+	for _, v := range input {
+		result = append(result, model.Vrtic{
+			ID:        v.ID,
+			Naziv:     v.Naziv,
+			Adresa:    v.Adresa,
+			Opstina:   v.Opstina,
+			Telefon:   v.Telefon,
+			Email:     v.Email,
+			Kapacitet: v.MaxKapacitet,
+			BrojDece:  v.TrenutnoUpisano,
+			Direktor:  "",
+			Aktivan:   true,
+		})
+	}
+
+	return result
+}
+
 // OpenDataService je servis koji koordinira preuzimanje i formatiranje podataka.
 type OpenDataService struct {
 	client *client.VrticiClient
@@ -78,16 +99,18 @@ func (s *OpenDataService) GetVrticiCSV() ([]byte, string, error) {
 		return nil, "", err
 	}
 
+	vrtici := MapVrtici(data.Vrtici)
+	
 	var header []string
 	var rows [][]string
 
-	if len(data.Vrtici) > 0 {
-		header = data.Vrtici[0].CSVHeader()
+	if len(vrtici) > 0 {
+		header = vrtici[0].CSVHeader()
 	} else {
 		header = model.Vrtic{}.CSVHeader()
 	}
 
-	for _, v := range data.Vrtici {
+	for _, v := range vrtici {
 		rows = append(rows, v.CSVRow())
 	}
 
@@ -191,19 +214,21 @@ func (s *OpenDataService) GetOceneCSV() ([]byte, string, error) {
 // JSON GENERATORI
 // =========================================================
 
-// GetVrticiJSON vraća JSON odgovor sa verzionisanim datasetom vrtića.
 func (s *OpenDataService) GetVrticiJSON() ([]byte, error) {
 	data, err := s.fetchData()
 	if err != nil {
 		return nil, err
 	}
 
+	vrtici := MapVrtici(data.Vrtici)
+
 	response := DatasetVersion{
 		Timestamp: trenutnoVreme(),
 		Dataset:   "vrtici",
-		Count:     len(data.Vrtici),
-		Data:      data.Vrtici,
+		Count:     len(vrtici),
+		Data:      vrtici,
 	}
+
 	return json.Marshal(response)
 }
 

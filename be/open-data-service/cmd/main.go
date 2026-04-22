@@ -1,15 +1,3 @@
-// Open Data Mikroservis za sistem upravljanja vrtićima.
-//
-// Servis preuzima podatke iz eksternog Vrtici servisa i izlaže ih
-// kao otvorene podatke u CSV i JSON formatu.
-//
-// Pokretanje:
-//
-//	go run ./cmd/main.go
-//
-// Env varijable:
-//   - PORT           - port na kome servis sluša (podrazumevano: 8084)
-//   - VRTICI_API_URL - base URL eksternog servisa (podrazumevano: http://localhost:8081)
 package main
 
 import (

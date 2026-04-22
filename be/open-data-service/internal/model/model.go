@@ -5,7 +5,7 @@ import "time"
 
 // Vrtic predstavlja podatke o jednom vrtiću u sistemu.
 type Vrtic struct {
-	ID        int    `json:"id"`
+	ID        string `json:"id"`   // ✅ FIX
 	Naziv     string `json:"naziv"`
 	Adresa    string `json:"adresa"`
 	Opstina   string `json:"opstina"`
@@ -16,7 +16,23 @@ type Vrtic struct {
 	Direktor  string `json:"direktor"`
 	Aktivan   bool   `json:"aktivan"`
 }
+type VrticDTO struct {
+	ID              string  `json:"id"`
+	Naziv           string  `json:"naziv"`
+	Adresa          string  `json:"adresa"`
+	Opstina         string  `json:"opstina"`
+	Telefon         string  `json:"telefon"`
+	Email           string  `json:"email"`
+	Tip             string  `json:"tip"`
+	Grad            string  `json:"grad"`
 
+	MaxKapacitet    int     `json:"max_kapacitet"`
+	TrenutnoUpisano int     `json:"trenutno_upisano"`
+
+	Popunjenost     float64 `json:"popunjenost"`
+	SlobodnaMesta   int     `json:"slobodna_mesta"`
+	Kriticno        bool    `json:"kriticno"`
+}
 // CSVHeader vraća zaglavlje CSV fajla za Vrtic.
 func (v Vrtic) CSVHeader() []string {
 	return []string{"id", "naziv", "adresa", "opstina", "telefon", "email", "kapacitet", "broj_dece", "direktor", "aktivan"}
@@ -29,7 +45,7 @@ func (v Vrtic) CSVRow() []string {
 		aktivan = "da"
 	}
 	return []string{
-		itoa(v.ID),
+		v.ID,
 		v.Naziv,
 		v.Adresa,
 		v.Opstina,
@@ -145,10 +161,12 @@ func (o Ocena) CSVRow() []string {
 	}
 }
 
-// ExportData je struktura koja dolazi iz eksternog Vrtici API-ja.
 type ExportData struct {
-	Vrtici   []Vrtic        `json:"vrtici"`
-	Zahtevi  []ZahtevZaUpis `json:"zahtevi"`
-	Konkursi []Konkurs      `json:"konkursi"`
-	Ocene    []Ocena        `json:"ocene"`
+	Vrtici        []VrticDTO     `json:"vrtici"`
+	Zahtevi       []ZahtevZaUpis `json:"zahtevi_upisa"`
+	Konkursi      []Konkurs      `json:"konkursi"`
+	Ocene         []Ocena        `json:"ocene_vrtica"`
+	Kriticni      any            `json:"kriticni"`
+	OpstinaReport any            `json:"opstina_report"`
+	Rasporedi     any            `json:"rasporedi_vaspitaca"`
 }
