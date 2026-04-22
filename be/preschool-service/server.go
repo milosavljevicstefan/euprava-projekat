@@ -9,7 +9,77 @@ import (
 	"net/http"
 	"strings"
 )
+type AllDataResponse struct {
+	Vrtici            any `json:"vrtici"`
+	Kriticni          any `json:"kriticni"`
+	OpstinaReport     any `json:"opstina_report"`
+	Konkursi          any `json:"konkursi"`
+	Rasporedi         any `json:"rasporedi_vaspitaca"`
+	Zahtevi           any `json:"zahtevi_upisa"`
+	Ocene             any `json:"ocene_vrtica"`
+}
+func allDataHandler(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
 
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vrtici, err := handleVrticiList(r)
+	if err != nil {
+		http.Error(w, "Greska vrtici", http.StatusInternalServerError)
+		return
+	}
+
+	kriticni, err := getKriticni(r.Context())
+	if err != nil {
+		http.Error(w, "Greska kriticni", http.StatusInternalServerError)
+		return
+	}
+
+	opstina, err := izvestajPoOpstini(r.Context())
+	if err != nil {
+		http.Error(w, "Greska opstina report", http.StatusInternalServerError)
+		return
+	}
+
+	konkursi, err := getAllKonkursViews(r.Context(), "", "")
+	if err != nil {
+		http.Error(w, "Greska konkursi", http.StatusInternalServerError)
+		return
+	}
+
+	rasporedi, err := listAssignments(r.Context())
+	if err != nil {
+		http.Error(w, "Greska rasporedi", http.StatusInternalServerError)
+		return
+	}
+
+	zahtevi, err := getAllRequests(r.Context())
+	if err != nil {
+		http.Error(w, "Greska zahtevi", http.StatusInternalServerError)
+		return
+	}
+
+	resp := AllDataResponse{
+		Vrtici:        vrtici,
+		Kriticni:      kriticni,
+		OpstinaReport: opstina,
+		Konkursi:      konkursi,
+		Rasporedi:     rasporedi,
+		Zahtevi:       zahtevi,
+		Ocene:         nil, // nema u kodu → preskočeno
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
 func main() {
 	initMongo()
 
@@ -21,7 +91,7 @@ func main() {
 		}
 		fmt.Fprint(w, "Preschool servis (8081) je online.")
 	})
-
+	http.HandleFunc("/analytics/all-data", allDataHandler)
 	http.HandleFunc("/vrtici/kriticni", func(w http.ResponseWriter, r *http.Request) {
 		enableCORS(w)
 		if r.Method == http.MethodOptions {
