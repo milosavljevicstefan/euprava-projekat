@@ -1,7 +1,7 @@
 const API_VRTICI = "http://localhost:8081";
 const API_AUTH = "http://localhost:8083";
 const OPEN_DATA_URL = "http://localhost:8082/analytics";
-
+const API_OPEN_DATA = "http://localhost:8084";
 const PAGE_BY_FILE = {
   "": "vrtici",
   "index.html": "vrtici",
@@ -10,16 +10,16 @@ const PAGE_BY_FILE = {
   "upis.html": "upis",
   "dodaj.html": "dodaj",
   "zahtevi.html": "zahtevi",
-  "analitika.html": "analitika",
   "vaspitac.html": "vaspitac",
+  "javni_podaci.html": "javni_podaci",
   "login.html": "login",
   "registracija.html": "registracija",
   "profil.html": "profil",
 };
 
-const PUBLIC_PAGES = new Set(["vrtici", "statistika", "opstine", "login", "registracija"]);
+const PUBLIC_PAGES = new Set(["vrtici", "statistika", "javni_podaci", "login", "registracija"]);
 const USER_ONLY_PAGES = new Set(["upis", "profil"]);
-const ADMIN_ONLY_PAGES = new Set(["dodaj", "zahtevi", "analitika", "profil"]);
+const ADMIN_ONLY_PAGES = new Set(["dodaj", "zahtevi", "profil"]);
 const EDUCATOR_ONLY_PAGES = new Set(["vaspitac", "profil"]);
 
 const NAV_LINKS = [
@@ -34,6 +34,7 @@ const NAV_LINKS = [
   { href: "login.html", nav: "login", label: "Login" },
   { href: "registracija.html", nav: "registracija", label: "Registracija" },
   { href: "profil.html", nav: "profil", label: "Profil" },
+  { href: "javni_podaci.html", nav: "javni_podaci", label: "Javni podaci" },
 ];
 
 const state = {
@@ -360,7 +361,148 @@ function setEditMode(v) {
 function renderAll() {
   renderFilters(); renderStats(); renderCards(); renderManageCards(); renderCriticalCards(); renderOpstinaReport(); populateVrticSelect(); renderMyRequests(); renderAdminRequests();
 }
+async function openMap() {
+    try {
+        const response = await fetch(`${API_OPEN_DATA}/open-data/vrtici/csv`);
+        if (!response.ok) throw new Error("Problem sa mrežom");
+        
+        const csvText = await response.text();
+        const rows = csvText.trim().split('\n');
 
+        if (rows.length > 1) {
+            // Detekcija separatora (zarez ili tačka-zarez)
+            const separator = csvText.includes(';') ? ';' : ',';
+            
+            // Uzimamo prvi red podataka (index 1, jer je 0 header)
+            const cols = rows[1].split(separator);
+            
+            // cols[0] je naziv, cols[2] je grad
+            const naziv = cols[0] ? cols[0].trim() : "";
+            const grad = cols[2] ? cols[2].trim() : "";
+
+            const pretraga = encodeURIComponent(`${naziv} ${grad}`);
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${pretraga}`;
+
+            window.open(mapUrl, '_blank');
+        } else {
+            console.warn("CSV nema dovoljno redova za mapu.");
+        }
+    } catch (err) {
+        console.error("Greška pri otvaranju mape:", err);
+        // Fallback: otvori bar opštu pretragu za vrtiće u Srbiji
+        window.open(`https://www.google.com/maps/search/vrtici+srbija`, '_blank');
+    }
+}
+async function downloadData(resource, format) {
+    let url = "";
+    
+    // Ako je generički download
+    if (resource === 'download') {
+        url = `${API_OPEN_DATA}/open-data/download`;
+    } else {
+        // Formiranje putanje prema tvom Go mux-u: /open-data/{vrtici}/{csv}
+        url = `${API_OPEN_DATA}/open-data/${resource}/${format}`;
+    }
+
+    try {
+        console.log(`Preuzimam sa: ${url}`);
+        
+        // Za CSV/Download najbolje je koristiti direktan link
+        if (format === 'csv' || resource === 'download') {
+            window.location.href = url;
+            return;
+        }
+
+        // Za JSON možemo da otvorimo u novom tabu ili uradimo fetch
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Servis nije dostupan.");
+        
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `${resource}_${new Date().getTime()}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    } catch (err) {
+        alert("Greška pri preuzimanju: " + err.message);
+    }
+}
+
+async function previewData(resource) {
+    const section = document.getElementById('preview-section');
+    const container = document.getElementById('preview-container');
+    const title = document.getElementById('preview-title');
+    
+    section.style.display = 'block';
+    container.innerHTML = '<p class="muted">Učitavam CSV podatke...</p>';
+    title.innerText = `Pregled: ${resource.toUpperCase()}`;
+
+    const url = `${API_OPEN_DATA}/open-data/${resource}/csv`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("CSV servis nije dostupan.");
+        
+        const csvText = await response.text();
+        const rows = csvText.trim().split('\n');
+
+        if (rows.length < 1) {
+            container.innerHTML = '<p class="muted">Fajl je prazan.</p>';
+            return;
+        }
+
+        const separator = csvText.includes(';') ? ';' : ',';
+        let html = '<table class="preview-table">';
+        
+        // Header
+        const headers = rows[0].split(separator);
+        html += '<thead><tr>';
+        headers.forEach(h => html += `<th>${h.trim()}</th>`);
+        
+        // DODAJEMO KOLONU ZA AKCIJU SAMO AKO SU VRTICI
+        if (resource === 'vrtici') {
+            html += '<th>Lokacija</th>';
+        }
+        html += '</tr></thead><tbody>';
+
+        // Podaci (prvih 10 redova da bi izgledalo bogatije)
+        const dataRows = rows.slice(1, 11); 
+        dataRows.forEach(row => {
+            const columns = row.split(separator);
+            html += '<tr>';
+            columns.forEach(col => html += `<td>${col.trim()}</td>`);
+
+            // AKO SU VRTICI, DODAJ DUGME KOJE KORISTI NAZIV I GRAD IZ OVOG REDA
+            if (resource === 'vrtici') {
+                const naziv = columns[0].trim();
+                const grad = columns[2].trim();
+                const query = encodeURIComponent(`${naziv} ${grad}`);
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+                
+                html += `<td>
+                            <a href="${mapUrl}" target="_blank" class="btn ghost small" style="padding: 4px 8px; font-size: 11px;">
+                                📍 Vidi
+                            </a>
+                         </td>`;
+            }
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        if (rows.length > 11) {
+            html += `<p class="muted" style="margin-top: 1rem;">Prikazano prvih 10 od ${rows.length - 1} zapisa.</p>`;
+        }
+
+        container.innerHTML = html;
+        section.scrollIntoView({ behavior: 'smooth' });
+
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p class="error-text">Greška pri čitanju CSV-a: ${err.message}</p>`;
+    }
+}
 async function fetchVrtici() {
   try {
     const res = await fetch(`${API_VRTICI}/vrtici`);
