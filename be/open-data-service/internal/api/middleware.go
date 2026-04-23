@@ -7,18 +7,36 @@ import (
 	"time"
 )
 
-// LoggingMiddleware je HTTP middleware koji loguje svaki zahtev:
-// metod, putanju, status kod i vreme obrade.
+func CORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Dozvoli sve (za razvoj / demo)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// Preflight request (browser šalje OPTIONS)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Omotavamo ResponseWriter da bismo uhvatili status kod
-		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		wrapped := &responseWriter{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK,
+		}
 
 		next.ServeHTTP(wrapped, r)
 
 		duration := time.Since(start)
+
 		log.Printf("[HTTP] %s %s | status=%d | trajanje=%s | ip=%s",
 			r.Method,
 			r.RequestURI,
@@ -29,13 +47,11 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// responseWriter je wrapper oko http.ResponseWriter koji pamti status kod.
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
 
-// WriteHeader presreće status kod pre prosleđivanja originalnom writeru.
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)

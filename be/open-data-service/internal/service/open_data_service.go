@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"archive/zip"
+	"log"
 
 	"github.com/milosavljevicstefan/euprava-projekat/open-data-service/internal/client"
 	"github.com/milosavljevicstefan/euprava-projekat/open-data-service/internal/model"
@@ -20,26 +22,6 @@ type DatasetVersion struct {
 	Data      interface{} `json:"data"`      // Stvarni podaci
 }
 
-func MapVrtici(input []model.VrticDTO) []model.Vrtic {
-	result := make([]model.Vrtic, 0, len(input))
-
-	for _, v := range input {
-		result = append(result, model.Vrtic{
-			ID:        v.ID,
-			Naziv:     v.Naziv,
-			Adresa:    v.Adresa,
-			Opstina:   v.Opstina,
-			Telefon:   v.Telefon,
-			Email:     v.Email,
-			Kapacitet: v.MaxKapacitet,
-			BrojDece:  v.TrenutnoUpisano,
-			Direktor:  "",
-			Aktivan:   true,
-		})
-	}
-
-	return result
-}
 
 // OpenDataService je servis koji koordinira preuzimanje i formatiranje podataka.
 type OpenDataService struct {
@@ -99,7 +81,7 @@ func (s *OpenDataService) GetVrticiCSV() ([]byte, string, error) {
 		return nil, "", err
 	}
 
-	vrtici := MapVrtici(data.Vrtici)
+	vrtici := data.Vrtici
 	
 	var header []string
 	var rows [][]string
@@ -213,25 +195,38 @@ func (s *OpenDataService) GetOceneCSV() ([]byte, string, error) {
 // =========================================================
 // JSON GENERATORI
 // =========================================================
-
 func (s *OpenDataService) GetVrticiJSON() ([]byte, error) {
 	data, err := s.fetchData()
 	if err != nil {
 		return nil, err
 	}
 
-	vrtici := MapVrtici(data.Vrtici)
-
 	response := DatasetVersion{
 		Timestamp: trenutnoVreme(),
 		Dataset:   "vrtici",
-		Count:     len(vrtici),
-		Data:      vrtici,
+		Count:     len(data.Vrtici),
+		Data:      data.Vrtici,
 	}
 
 	return json.Marshal(response)
 }
+func (s *OpenDataService) mapZahtevi(data *model.ExportData) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0)
 
+	for _, z := range data.Zahtevi {
+		out = append(out, map[string]interface{}{
+			"id":               z.ID,
+			"vrtic_id":         z.VrticID,
+			"ime_deteta":       z.ImeDeteta,
+			"godina_rodjenja":  z.GodinaRodj,
+			"ime_roditelja":    z.ImeRoditelja,
+			"datum_zahteva":    z.DatumZahteva,
+			"status":           z.Status,
+		})
+	}
+
+	return out
+}
 // GetZahteviJSON vraća JSON odgovor sa verzionisanim datasetom zahteva.
 func (s *OpenDataService) GetZahteviJSON() ([]byte, error) {
 	data, err := s.fetchData()
@@ -243,7 +238,7 @@ func (s *OpenDataService) GetZahteviJSON() ([]byte, error) {
 		Timestamp: trenutnoVreme(),
 		Dataset:   "zahtevi",
 		Count:     len(data.Zahtevi),
-		Data:      data.Zahtevi,
+		Data:      s.mapZahtevi(data),
 	}
 	return json.Marshal(response)
 }
@@ -262,16 +257,46 @@ type DownloadResult struct {
 // GetDownload je generički handler koji na osnovu dataset i format parametara
 // vraća odgovarajući fajl za preuzimanje.
 func (s *OpenDataService) GetDownload(dataset, format string) (*DownloadResult, error) {
-	switch format {
-	case "csv":
 		return s.downloadCSV(dataset)
-	case "json":
-		return s.downloadJSON(dataset)
-	default:
-		return nil, fmt.Errorf("nepoznat format '%s' — dozvoljeno: csv, json", format)
-	}
 }
+func (s *OpenDataService) GetAllAsZip() (*DownloadResult, error) {
+    buf := new(bytes.Buffer)
+    zw := zip.NewWriter(buf)
 
+    // Lista tvoja tri dataseta
+    datasets := []string{"vrtici", "zahtevi", "konkursi"}
+
+    for _, ds := range datasets {
+        // Pozivamo tvoju postojeću funkciju
+        res, err := s.downloadCSV(ds)
+        if err != nil {
+            log.Printf("[WARN] Preskačem %s jer je bacio grešku: %v", ds, err)
+            continue
+        }
+
+        // Dodajemo fajl u ZIP
+        f, err := zw.Create(ds + ".csv")
+        if err != nil {
+            return nil, err
+        }
+        
+        // Upisujemo Content iz tvog DownloadResult-a
+        _, err = f.Write(res.Content)
+        if err != nil {
+            return nil, err
+        }
+    }
+
+    if err := zw.Close(); err != nil {
+        return nil, err
+    }
+
+    return &DownloadResult{
+        Content:     buf.Bytes(),
+        ContentType: "application/zip",
+        Filename:    "e-uprava-komplet-podaci.zip",
+    }, nil
+}
 func (s *OpenDataService) downloadCSV(dataset string) (*DownloadResult, error) {
 	var content []byte
 	var filename string
@@ -284,8 +309,6 @@ func (s *OpenDataService) downloadCSV(dataset string) (*DownloadResult, error) {
 		content, filename, err = s.GetZahteviCSV()
 	case "konkursi":
 		content, filename, err = s.GetKonkursiCSV()
-	case "ocene":
-		content, filename, err = s.GetOceneCSV()
 	default:
 		return nil, fmt.Errorf("nepoznat dataset '%s' — dozvoljeno: vrtici, zahtevi, konkursi, ocene", dataset)
 	}

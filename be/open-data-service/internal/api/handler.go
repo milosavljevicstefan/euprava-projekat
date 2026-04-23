@@ -26,7 +26,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/open-data/vrtici/csv", h.GetVrticiCSV)
 	mux.HandleFunc("/open-data/zahtevi/csv", h.GetZahteviCSV)
 	mux.HandleFunc("/open-data/konkursi/csv", h.GetKonkursiCSV)
-	mux.HandleFunc("/open-data/ocene/csv", h.GetOceneCSV)
 
 	// JSON endpointi
 	mux.HandleFunc("/open-data/vrtici/json", h.GetVrticiJSON)
@@ -99,21 +98,21 @@ func (h *Handler) GetKonkursiCSV(w http.ResponseWriter, r *http.Request) {
 
 // GetOceneCSV vraća CSV fajl sa ocenama vrtića.
 // GET /open-data/ocene/csv
-func (h *Handler) GetOceneCSV(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "dozvoljeno samo GET")
-		return
-	}
+// func (h *Handler) GetOceneCSV(w http.ResponseWriter, r *http.Request) {
+// 	if r.Method != http.MethodGet {
+// 		writeError(w, http.StatusMethodNotAllowed, "dozvoljeno samo GET")
+// 		return
+// 	}
 
-	csvBytes, filename, err := h.svc.GetOceneCSV()
-	if err != nil {
-		log.Printf("[ERROR] GetOceneCSV: %v", err)
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("greška pri preuzimanju podataka: %v", err))
-		return
-	}
+// 	csvBytes, filename, err := h.svc.GetOceneCSV()
+// 	if err != nil {
+// 		log.Printf("[ERROR] GetOceneCSV: %v", err)
+// 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("greška pri preuzimanju podataka: %v", err))
+// 		return
+// 	}
 
-	writeCSV(w, csvBytes, filename)
-}
+// 	writeCSV(w, csvBytes, filename)
+// }
 
 // =========================================================
 // JSON HANDLERI
@@ -166,40 +165,37 @@ func (h *Handler) GetZahteviJSON(w http.ResponseWriter, r *http.Request) {
 //   - dataset: vrtici | zahtevi | konkursi | ocene  (obavezno)
 //   - format:  csv | json                           (obavezno)
 func (h *Handler) Download(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "dozvoljeno samo GET")
-		return
-	}
+    if r.Method != http.MethodGet {
+        writeError(w, http.StatusMethodNotAllowed, "dozvoljeno samo GET")
+        return
+    }
 
-	// Validacija query parametara
-	dataset := r.URL.Query().Get("dataset")
-	format := r.URL.Query().Get("format")
+    dataset := r.URL.Query().Get("dataset")
+    format := r.URL.Query().Get("format")
 
-	if dataset == "" {
-		writeError(w, http.StatusBadRequest, "nedostaje query parametar 'dataset' (dozvoljeno: vrtici, zahtevi, konkursi, ocene)")
-		return
-	}
-	if format == "" {
-		writeError(w, http.StatusBadRequest, "nedostaje query parametar 'format' (dozvoljeno: csv, json)")
-		return
-	}
+    // OVDE JE BITNO: Dodaj prefiks paketa gde je definisan DownloadResult
+    var result *service.DownloadResult 
+    var err error
 
-	result, err := h.svc.GetDownload(dataset, format)
-	if err != nil {
-		log.Printf("[ERROR] Download dataset=%s format=%s: %v", dataset, format, err)
-		// Razlikujemo grešku validacije (400) od greške servisa (500)
-		status := http.StatusInternalServerError
-		if isValidationError(err) {
-			status = http.StatusBadRequest
-		}
-		writeError(w, status, err.Error())
-		return
-	}
+    if dataset == "" {
+        result, err = h.svc.GetAllAsZip() 
+    } else {
+        result, err = h.svc.GetDownload(dataset, format)
+    }
 
-	w.Header().Set("Content-Type", result.ContentType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, result.Filename))
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(result.Content)
+    if err != nil {
+        log.Printf("[ERROR] Download dataset=%s: %v", dataset, err)
+        status := http.StatusInternalServerError
+        // Ako je isValidationError definisan u drugom paketu, i njemu dodaj prefiks (npr. service.isValidationError)
+        writeError(w, status, err.Error())
+        return
+    }
+
+    // Sada će 'result' biti prepoznat i moći ćeš da pristupiš poljima
+    w.Header().Set("Content-Type", result.ContentType)
+    w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, result.Filename))
+    w.WriteHeader(http.StatusOK)
+    _, _ = w.Write(result.Content)
 }
 
 // =========================================================
@@ -223,17 +219,22 @@ func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 // writeCSV postavlja odgovarajuće headere i šalje CSV sadržaj.
 func writeCSV(w http.ResponseWriter, data []byte, filename string) {
-	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(data)
+    // DODAJ OVO ZA CORS
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    
+    w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+    w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+    w.WriteHeader(http.StatusOK)
+    _, _ = w.Write(data)
 }
 
-// writeJSON postavlja Content-Type i šalje sirovi JSON.
 func writeJSON(w http.ResponseWriter, status int, data []byte) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_, _ = w.Write(data)
+    // DODAJ OVO ZA CORS
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+
+    w.Header().Set("Content-Type", "application/json; charset=utf-8")
+    w.WriteHeader(status)
+    _, _ = w.Write(data)
 }
 
 // ErrorResponse je struktura za JSON greške.

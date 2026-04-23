@@ -1,112 +1,93 @@
 // Package model sadrži definicije struktura podataka koje se koriste u sistemu.
 package model
 
-import "time"
+import (
+	"time"
+	"fmt"
+)
 
 // Vrtic predstavlja podatke o jednom vrtiću u sistemu.
 type Vrtic struct {
-	ID        string `json:"id"`   // ✅ FIX
-	Naziv     string `json:"naziv"`
-	Adresa    string `json:"adresa"`
-	Opstina   string `json:"opstina"`
-	Telefon   string `json:"telefon"`
-	Email     string `json:"email"`
-	Kapacitet int    `json:"kapacitet"`
-	BrojDece  int    `json:"broj_dece"`
-	Direktor  string `json:"direktor"`
-	Aktivan   bool   `json:"aktivan"`
-}
-type VrticDTO struct {
-	ID              string  `json:"id"`
-	Naziv           string  `json:"naziv"`
-	Adresa          string  `json:"adresa"`
-	Opstina         string  `json:"opstina"`
-	Telefon         string  `json:"telefon"`
-	Email           string  `json:"email"`
-	Tip             string  `json:"tip"`
-	Grad            string  `json:"grad"`
-
-	MaxKapacitet    int     `json:"max_kapacitet"`
-	TrenutnoUpisano int     `json:"trenutno_upisano"`
-
-	Popunjenost     float64 `json:"popunjenost"`
-	SlobodnaMesta   int     `json:"slobodna_mesta"`
-	Kriticno        bool    `json:"kriticno"`
+	ID            string  `json:"id"`
+	Naziv         string  `json:"naziv"`
+	Tip           string  `json:"tip"`
+	Grad          string  `json:"grad"`
+	Opstina       string  `json:"opstina"`
+	Kapacitet     int     `json:"max_kapacitet"`
+	BrojDece      int     `json:"trenutno_upisano"`
+	Popunjenost   float64 `json:"popunjenost"`
+	SlobodnaMesta int     `json:"slobodna_mesta"`
+	Kriticno      bool    `json:"kriticno"`
 }
 // CSVHeader vraća zaglavlje CSV fajla za Vrtic.
 func (v Vrtic) CSVHeader() []string {
-	return []string{"id", "naziv", "adresa", "opstina", "telefon", "email", "kapacitet", "broj_dece", "direktor", "aktivan"}
+	return []string{"naziv", "tip", "grad", "kapacitet", "opstina", "broj_dece", "popunjenost", "kriticni?"}
 }
-
+func boolToString(b bool) string {
+	if b {
+		return "DA"
+	}
+	return "NE"
+}
+func ftoaa(f float64) string {
+	return fmt.Sprintf("%.0f%%", f*100)
+}
 // CSVRow vraća red podataka za CSV fajl.
 func (v Vrtic) CSVRow() []string {
-	aktivan := "ne"
-	if v.Aktivan {
-		aktivan = "da"
-	}
 	return []string{
-		v.ID,
 		v.Naziv,
-		v.Adresa,
-		v.Opstina,
-		v.Telefon,
-		v.Email,
+		v.Tip,
+		v.Grad,
 		itoa(v.Kapacitet),
+		v.Opstina,
 		itoa(v.BrojDece),
-		v.Direktor,
-		aktivan,
+		ftoaa(v.Popunjenost),
+		boolToString(v.Kriticno),
 	}
 }
 
 // ZahtevZaUpis predstavlja zahtev roditelja za upisivanje deteta u vrtić.
 type ZahtevZaUpis struct {
-	ID          int       `json:"id"`
-	VrticID     int       `json:"vrtic_id"`
-	ImeDeteta   string    `json:"ime_deteta"`
-	GodinaRodj  int       `json:"godina_rodjenja"`
-	ImeRoditelja string   `json:"ime_roditelja"`
-	KontaktTel  string    `json:"kontakt_telefon"`
-	DatumZahteva time.Time `json:"datum_zahteva"`
-	Status      string    `json:"status"` // ceka, odobren, odbijen
-	Napomena    string    `json:"napomena"`
+	ID            string    `json:"id"`
+	VrticID       string    `json:"vrtic_id"`
+	ImeDeteta     string    `json:"ime_deteta"`
+	GodinaRodj    int       `json:"broj_godina"`
+	ImeRoditelja  string    `json:"ime_roditelja"`
+	DatumZahteva  time.Time `json:"created_at"`
+	Status        string    `json:"status"`
+	Napomena      string    `json:"napomena"`
 }
 
 // CSVHeader vraća zaglavlje CSV fajla za ZahtevZaUpis.
 func (z ZahtevZaUpis) CSVHeader() []string {
-	return []string{"id", "vrtic_id", "ime_deteta", "godina_rodjenja", "ime_roditelja", "kontakt_telefon", "datum_zahteva", "status", "napomena"}
+	return []string{"ime_deteta", "godina_rodjenja", "ime_roditelja", "datum_zahteva", "status"}
 }
 
 // CSVRow vraća red podataka za CSV fajl.
 func (z ZahtevZaUpis) CSVRow() []string {
 	return []string{
-		itoa(z.ID),
-		itoa(z.VrticID),
 		z.ImeDeteta,
 		itoa(z.GodinaRodj),
 		z.ImeRoditelja,
-		z.KontaktTel,
 		z.DatumZahteva.Format("2006-01-02"),
 		z.Status,
-		z.Napomena,
 	}
 }
 
 // Konkurs predstavlja oglas/konkurs za upis dece u vrtiće.
 type Konkurs struct {
-	ID          int       `json:"id"`
-	VrticID     int       `json:"vrtic_id"`
-	NazivVrtica string    `json:"naziv_vrtića"`
-	BrojMesta   int       `json:"broj_mesta"`
-	DatumOd     time.Time `json:"datum_od"`
-	DatumDo     time.Time `json:"datum_do"`
-	Opis        string    `json:"opis"`
-	Aktivan     bool      `json:"aktivan"`
-	GodinaUpisa int       `json:"godina_upisa"`
+    ID              string    `json:"id"`
+    VrticID         string    `json:"vrtic_id"`
+    NazivVrtica     string    `json:"vrtic_naziv"`
+    DatumOd         time.Time `json:"datum_pocetka"`
+    DatumDo         time.Time `json:"datum_zavrsetka"`
+    BrojMesta       int       `json:"max_mesta"`
+    Aktivan         bool      `json:"aktivan"`
 }
 
 // CSVHeader vraća zaglavlje CSV fajla za Konkurs.
 func (k Konkurs) CSVHeader() []string {
-	return []string{"id", "vrtic_id", "naziv_vrtića", "broj_mesta", "datum_od", "datum_do", "opis", "aktivan", "godina_upisa"}
+	return []string{ "naziv_vrtića", "broj_mesta", "datum_od", "datum_do", "aktivan"}
 }
 
 // CSVRow vraća red podataka za CSV fajl.
@@ -116,15 +97,11 @@ func (k Konkurs) CSVRow() []string {
 		aktivan = "da"
 	}
 	return []string{
-		itoa(k.ID),
-		itoa(k.VrticID),
 		k.NazivVrtica,
 		itoa(k.BrojMesta),
 		k.DatumOd.Format("2006-01-02"),
 		k.DatumDo.Format("2006-01-02"),
-		k.Opis,
 		aktivan,
-		itoa(k.GodinaUpisa),
 	}
 }
 
@@ -162,11 +139,8 @@ func (o Ocena) CSVRow() []string {
 }
 
 type ExportData struct {
-	Vrtici        []VrticDTO     `json:"vrtici"`
+	Vrtici        []Vrtic  		 `json:"vrtici"`
 	Zahtevi       []ZahtevZaUpis `json:"zahtevi_upisa"`
 	Konkursi      []Konkurs      `json:"konkursi"`
 	Ocene         []Ocena        `json:"ocene_vrtica"`
-	Kriticni      any            `json:"kriticni"`
-	OpstinaReport any            `json:"opstina_report"`
-	Rasporedi     any            `json:"rasporedi_vaspitaca"`
 }
