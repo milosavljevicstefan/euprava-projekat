@@ -515,6 +515,52 @@ func main() {
 		json.NewEncoder(w).Encode(items)
 	})
 
+	http.HandleFunc("/vaspitac/sastanci/", func(w http.ResponseWriter, r *http.Request) {
+		enableCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		claims, err := requireAuth(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		if err := requireEducatorRole(claims); err != nil {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		id, action, err := parseMeetingAction(r.URL.Path)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		var payload SastanakActionPayload
+		if r.Body != nil {
+			defer r.Body.Close()
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && !errors.Is(err, io.EOF) {
+				http.Error(w, "Neispravan JSON", http.StatusBadRequest)
+				return
+			}
+		}
+		if err := processMeetingDecision(r.Context(), claims, id, action, payload.Reason); err != nil {
+			status := http.StatusBadRequest
+			switch {
+			case errors.Is(err, mongo.ErrNoDocuments):
+				status = http.StatusNotFound
+			case strings.Contains(err.Error(), "Nemate dozvolu"):
+				status = http.StatusForbidden
+			}
+			http.Error(w, err.Error(), status)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
 	http.HandleFunc("/vaspitac/obavestenja", func(w http.ResponseWriter, r *http.Request) {
 		enableCORS(w)
 		if r.Method == http.MethodOptions {

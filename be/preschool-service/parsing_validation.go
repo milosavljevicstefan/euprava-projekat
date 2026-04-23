@@ -66,6 +66,24 @@ func parseKonkursAction(path string) (primitive.ObjectID, string, error) {
 	return id, parts[1], nil
 }
 
+func parseMeetingAction(path string) (primitive.ObjectID, string, error) {
+	parts := strings.Split(strings.Trim(strings.TrimPrefix(path, "/vaspitac/sastanci/"), "/"), "/")
+	if len(parts) != 2 {
+		return primitive.NilObjectID, "", errors.New("Neispravan URL sastanka")
+	}
+	id, err := primitive.ObjectIDFromHex(parts[0])
+	if err != nil {
+		return primitive.NilObjectID, "", errors.New("Neispravan ID sastanka")
+	}
+	action := strings.ToLower(strings.TrimSpace(parts[1]))
+	switch action {
+	case "prihvati", "odbij":
+		return id, action, nil
+	default:
+		return primitive.NilObjectID, "", errors.New("Nepoznata akcija")
+	}
+}
+
 func validateVrticInput(v Vrtic) error {
 	if strings.TrimSpace(v.Naziv) == "" {
 		return errors.New("Naziv je obavezan")
