@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="920" height="720" viewBox="0 0 920 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111827"/>
+    </marker>
+    <style>
+      .title { font: 700 28px Arial, sans-serif; fill: #111827; }
+      .box-title { font: 700 22px Arial, sans-serif; fill: #111827; }
+      .actor-label { font: 400 16px Arial, sans-serif; fill: #111827; }
+      .uc-text { font: 400 16px Arial, sans-serif; fill: #111827; text-anchor: middle; dominant-baseline: middle; }
+      .line { stroke: #111827; stroke-width: 2; fill: none; }
+      .dash { stroke: #111827; stroke-width: 2; fill: none; stroke-dasharray: 9 7; }
+      .uc { fill: #f8fafc; stroke: #6b7280; stroke-width: 1.5; }
+      .system { fill: #ffffff; stroke: #111827; stroke-width: 2; }
+      .include { font: italic 14px Arial, sans-serif; fill: #374151; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <text x="460" y="38" text-anchor="middle" class="title">E-Uprava - Use Case Dijagram - Otvoreni podaci</text>
+
+  <rect x="120" y="70" width="760" height="620" rx="2" class="system"/>
+  <text x="500" y="96" text-anchor="middle" class="box-title">Otvoreni podaci</text>
+
+  <circle cx="38" cy="120" r="10" class="line"/>
+  <line x1="38" y1="130" x2="38" y2="165" class="line"/>
+  <line x1="18" y1="145" x2="58" y2="145" class="line"/>
+  <line x1="38" y1="165" x2="20" y2="192" class="line"/>
+  <line x1="38" y1="165" x2="56" y2="192" class="line"/>
+  <text x="38" y="218" text-anchor="middle" class="actor-label">Korisnik</text>
+
+  <ellipse cx="290" cy="170" rx="128" ry="34" class="uc"/>
+  <text x="290" y="170" class="uc-text">Pregled otvorenih podataka</text>
+
+  <ellipse cx="300" cy="285" rx="122" ry="34" class="uc"/>
+  <text x="300" y="285" class="uc-text">Filtriranje podataka</text>
+
+  <ellipse cx="300" cy="390" rx="120" ry="34" class="uc"/>
+  <text x="300" y="390" class="uc-text">Sortiranje podataka</text>
+
+  <ellipse cx="610" cy="170" rx="124" ry="36" class="uc"/>
+  <text x="610" y="162" class="uc-text">Pregled statistike</text>
+  <text x="610" y="182" class="uc-text">po opstini</text>
+
+  <ellipse cx="620" cy="285" rx="132" ry="36" class="uc"/>
+  <text x="620" y="277" class="uc-text">Pregled kriticno</text>
+  <text x="620" y="297" class="uc-text">popunjenih vrtica</text>
+
+  <ellipse cx="610" cy="390" rx="118" ry="34" class="uc"/>
+  <text x="610" y="390" class="uc-text">Najbolje opstine</text>
+
+  <ellipse cx="610" cy="495" rx="118" ry="34" class="uc"/>
+  <text x="610" y="495" class="uc-text">Pokrivenost po opstini</text>
+
+  <ellipse cx="610" cy="600" rx="122" ry="34" class="uc"/>
+  <text x="610" y="592" class="uc-text">Projekcija potreba</text>
+  <text x="610" y="612" class="uc-text">za novim vrticima</text>
+
+  <ellipse cx="300" cy="555" rx="112" ry="34" class="uc"/>
+  <text x="300" y="555" class="uc-text">Preuzimanje PDF izvestaja</text>
+
+  <ellipse cx="300" cy="640" rx="118" ry="34" class="uc"/>
+  <text x="300" y="632" class="uc-text">Preuzimanje JSON</text>
+  <text x="300" y="652" class="uc-text">exporta podataka</text>
+
+  <path d="M68 150 L150 150" class="line" marker-end="url(#arrow)"/>
+  <path d="M68 160 L150 160 L150 270 L174 270" class="line" marker-end="url(#arrow)"/>
+  <path d="M68 170 L150 170 L150 375 L176 375" class="line" marker-end="url(#arrow)"/>
+  <path d="M68 180 L150 180 L150 540 L184 540" class="line" marker-end="url(#arrow)"/>
+  <path d="M68 190 L150 190 L150 625 L184 625" class="line" marker-end="url(#arrow)"/>
+
+  <path d="M418 170 L478 170" class="dash" marker-end="url(#arrow)"/>
+  <text x="444" y="156" class="include">&lt;&lt;include&gt;&gt;</text>
+
+  <path d="M410 278 L505 195" class="dash" marker-end="url(#arrow)"/>
+  <text x="435" y="222" class="include">&lt;&lt;include&gt;&gt;</text>
+
+  <path d="M412 390 L486 390" class="dash" marker-end="url(#arrow)"/>
+  <text x="439" y="376" class="include">&lt;&lt;include&gt;&gt;</text>
+
+  <path d="M416 402 L496 474" class="dash" marker-end="url(#arrow)"/>
+  <text x="438" y="449" class="include">&lt;&lt;include&gt;&gt;</text>
+
+  <path d="M415 408 L500 582" class="dash" marker-end="url(#arrow)"/>
+  <text x="440" y="534" class="include">&lt;&lt;include&gt;&gt;</text>
+
+  <path d="M350 531 L350 430 L525 430" class="dash" marker-end="url(#arrow)"/>
+  <text x="357" y="454" class="include">&lt;&lt;extend&gt;&gt;</text>
+
+  <path d="M352 616 L352 212 L486 212" class="dash" marker-end="url(#arrow)"/>
+  <text x="360" y="235" class="include">&lt;&lt;extend&gt;&gt;</text>
+</svg>
