@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Uprava | Statistika</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;500;700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="statistika">
+    <div class="bg-noise"></div>
+
+    <header class="hero hero-compact" id="top">
+      <nav class="nav">
+        <div class="logo">E-Uprava</div>
+        <div class="nav-links">
+          <a href="index.html" data-nav="vrtici">Vrtici</a>
+          <a href="statistika.html" data-nav="statistika">Statistika</a>
+          <a href="ranking.html" data-nav="opstine">Najbolje opštine</a>
+          <a href="dodaj.html" data-nav="dodaj">CRUD</a>
+          <a href="analitika.html">Open Data Analitika</a>
+          <a href="login.html" data-nav="login">Login</a>
+          <a href="registracija.html" data-nav="registracija">Registracija</a>
+          <a href="profil.html" data-nav="profil">Profil</a>
+        </div>
+      </nav>
+      <div class="page-title-wrap">
+        <p class="eyebrow">Open Data</p>
+        <h1>Javni podaci servisa</h1>
+        <p class="lead">Preuzmite sirove podatke za dalju obradu i analizu.</p>
+      </div>
+    </header>
+
+    <main class="page-main">
+  <section class="vrtici">
+    <div class="section-head">
+      <div>
+        <h2>Dostupni resursi</h2>
+        <p>Preuzmite podatke ili pogledajte presek stanja.</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <article class="card">
+        <div class="badge">Dataset</div>
+        <h3>Vrtići</h3>
+        <p class="muted">Kompletan spisak vrtića sa lokacijama i kapacitetima.</p>
+        <div class="card-actions">
+            <button class="btn secondary small" onclick="downloadData('vrtici', 'csv')">CSV</button>
+            <button class="btn ghost small" onclick="previewData('vrtici')">Pregledaj</button>
+        </div>
+        </article>
+
+      <article class="card">
+        <div class="badge">Dataset</div>
+        <h3>Zahtevi za upis</h3>
+        <p class="muted">Anonimizovani podaci o svim podnetim zahtevima.</p>
+        <div class="card-actions">
+          <button class="btn secondary small" onclick="downloadData('zahtevi', 'csv')">CSV izvoz</button>
+          <button class="btn ghost small" onclick="previewData('zahtevi')">Pregledaj</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="badge">Dataset</div>
+        <h3>Konkursi</h3>
+        <p class="muted">Podaci o otvorenim i završenim konkursima.</p>
+        <div class="card-actions">
+          <button class="btn secondary small" onclick="downloadData('konkursi', 'csv')">CSV izvoz</button>
+          <button class="btn ghost small" onclick="previewData('konkursi')">Pregledaj</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="preview-section" class="form-section" style="display: none; margin-top: 40px;">
+    <div class="form-card" style="width: 100%; overflow-x: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 id="preview-title">Pregled podataka</h2>
+        <button class="btn ghost small" onclick="document.getElementById('preview-section').style.display='none'">Zatvori</button>
+      </div>
+      <div id="preview-container">
+        </div>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-card">
+      <h2>Napredni download</h2>
+      <p>Preuzmi kompletan arhivski paket podataka u ZIP formatu.</p>
+      <div class="form-actions">
+        <button class="btn primary" onclick="downloadData('download', '')">Preuzmi sve (ZIP)</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+    <footer class="footer">
+      <div>(c) 2026 E-Uprava | Vrtici servis</div>
+      <a href="#top">Nazad na vrh</a>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

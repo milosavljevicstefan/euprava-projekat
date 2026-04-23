@@ -28,11 +28,16 @@ services:
     depends_on:
       - mongo
 
-  analytics-app:
-    build: ./analytics-service
+  open-data-app:
+    build: ./open-data-service
     ports:
-      - "8082:8082"
-    container_name: analytics-service
+      - "8084:8084"
+    container_name: open-data-service
+    environment:
+      PORT: 8084
+      VRTICI_API_URL: http://preschool-app:8081
+    depends_on:
+      - preschool-app
 
   mongo:
     image: mongo:7
